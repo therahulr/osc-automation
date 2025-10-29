@@ -1,5 +1,8 @@
 """Browser lifecycle management with Playwright."""
 
+from pathlib import Path
+from typing import Optional
+
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 from core.config import settings
@@ -38,13 +41,17 @@ class BrowserManager:
         self._logger.info("Browser launched successfully")
 
     def new_context(
-        self, user_profile_dir: str | None = None, incognito: bool | None = None
+        self,
+        user_profile_dir: Optional[str] = None,
+        incognito: Optional[bool] = None,
+        viewport: Optional[dict] = None,
     ) -> BrowserContext:
         """Create new browser context with optional profile or incognito mode.
 
         Args:
             user_profile_dir: Path to user profile directory (persistent context)
             incognito: Override default incognito setting from config
+            viewport: Custom viewport size (default: maximized 1920x1080)
 
         Returns:
             New BrowserContext instance
@@ -60,8 +67,12 @@ class BrowserManager:
         # Prepare downloads directory
         downloads_path = ensure_dir(settings.downloads_dir)
 
+        # Default to maximized viewport
+        if viewport is None:
+            viewport = {"width": 1920, "height": 1080}
+
         context_kwargs = {
-            "viewport": {"width": 1920, "height": 1080},
+            "viewport": viewport,
             "accept_downloads": True,
             "downloads_path": str(downloads_path),
         }

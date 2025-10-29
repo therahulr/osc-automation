@@ -1,13 +1,17 @@
 """Login screen locators for OSC application."""
 
 # Login form elements
-USERNAME_INPUT = "input[name='username'], input[id='username'], input[type='email']"
-PASSWORD_INPUT = "input[name='password'], input[id='password'], input[type='password']"
-LOGIN_BUTTON = "button[type='submit'], button:has-text('Login'), button:has-text('Sign In')"
+USERNAME_INPUT = "input[name='txtUsername']"
+PASSWORD_INPUT = "input[name='txtPassword']"
+LOGIN_BUTTON = "input[name='btnLogin']"
 
-# Post-login indicators
-WELCOME_MESSAGE = ".welcome-message, .user-greeting, [data-testid='user-menu']"
-DASHBOARD_HEADER = "h1:has-text('Dashboard'), [data-testid='dashboard-header']"
+# Post-login indicators - Dashboard/Home page
+HOME_HEADING = "h2:has-text('Home')"
+APPLICATION_SUMMARY = "text=Application Summary"
+DASHBOARD_LOADED = "h2:has-text('Home'), text=Application Summary"
+
+# MFA page detection
+MFA_PAGE_INDICATOR = "text=One-time Passcode, text=MFA"
 
 # Error messages
 ERROR_MESSAGE = ".error-message, .alert-danger, [role='alert']"

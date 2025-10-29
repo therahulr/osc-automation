@@ -1,6 +1,6 @@
 """High-level UI interaction layer wrapping Playwright Page API."""
 
-from typing import Literal
+from typing import Literal, Optional, Tuple, Union
 
 from playwright.sync_api import Page
 
@@ -25,6 +25,33 @@ class Ui:
         self._page = page
         self._logger = Logger.get()
 
+    def _resolve_locator(self, locator: Union[str, Tuple[str, str]]) -> str:
+        """Resolve locator to Playwright selector string.
+        
+        Args:
+            locator: String selector or tuple of (strategy, value)
+            
+        Returns:
+            Playwright-compatible selector string
+        """
+        if isinstance(locator, tuple):
+            strategy, value = locator
+            if strategy == "id":
+                return f"#{value}"
+            elif strategy == "name":
+                return f"[name='{value}']"
+            elif strategy == "css":
+                return value
+            elif strategy == "xpath":
+                return f"xpath={value}"
+            elif strategy == "text":
+                return f"text={value}"
+            elif strategy == "role":
+                return f"role={value}"
+            else:
+                raise ValueError(f"Unsupported locator strategy: {strategy}")
+        return locator
+
     def goto(
         self, url: str, wait: Literal["load", "domcontentloaded", "networkidle", "commit"] = "load"
     ) -> None:
@@ -46,38 +73,39 @@ class Ui:
             raise RuntimeError(f"Failed to navigate to {url}: {e}") from e
 
     def click(
-        self, selector: Selector, *, timeout_ms: int | None = None, name: str | None = None
+        self, selector: Union[str, Tuple[str, str]], *, timeout_ms: int | None = None, name: str | None = None
     ) -> None:
         """Click element identified by selector.
 
         Args:
-            selector: Element selector
+            selector: Element selector (string or tuple)
             timeout_ms: Override default timeout
             name: Human-readable element name for logging
 
         Raises:
             Error: If element not found or not clickable
         """
-        element_name = name or selector
+        resolved_selector = self._resolve_locator(selector)
+        element_name = name or str(selector)
         timeout = timeout_ms or settings.default_timeout_ms
 
-        self._logger.info(f"Clicking element | element={element_name}, selector={selector}")
+        self._logger.info(f"Clicking element | element={element_name}, selector={resolved_selector}")
         try:
-            self._page.click(selector, timeout=timeout)
+            self._page.click(resolved_selector, timeout=timeout)
             self._logger.debug(f"Click successful | element={element_name}")
         except Exception as e:
             self._logger.error(
-                f"Click failed | element={element_name}, selector={selector}, error={e}"
+                f"Click failed | element={element_name}, selector={resolved_selector}, error={e}"
             )
             raise RuntimeError(f"Failed to click '{element_name}': {e}") from e
 
     def input_text(
-        self, selector: Selector, text: str, *, clear: bool = True, timeout_ms: int | None = None
+        self, selector: Union[str, Tuple[str, str]], text: str, *, clear: bool = True, timeout_ms: int | None = None
     ) -> None:
         """Input text into element.
 
         Args:
-            selector: Element selector
+            selector: Element selector (string or tuple)
             text: Text to input (logged as masked if contains 'pass')
             clear: Clear existing text before input
             timeout_ms: Override default timeout
@@ -85,22 +113,23 @@ class Ui:
         Raises:
             Error: If element not found or not editable
         """
+        resolved_selector = self._resolve_locator(selector)
         timeout = timeout_ms or settings.default_timeout_ms
         # Mask sensitive data in logs
-        display_text = "***MASKED***" if "pass" in selector.lower() else text[:50]
+        display_text = "***MASKED***" if "pass" in str(selector).lower() else text[:50]
 
         self._logger.info(
-            f"Inputting text | selector={selector}, text={display_text}, clear={clear}"
+            f"Inputting text | selector={resolved_selector}, text={display_text}, clear={clear}"
         )
         try:
             if clear:
-                self._page.fill(selector, text, timeout=timeout)
+                self._page.fill(resolved_selector, text, timeout=timeout)
             else:
-                self._page.type(selector, text, timeout=timeout)
-            self._logger.debug(f"Text input successful | selector={selector}")
+                self._page.type(resolved_selector, text, timeout=timeout)
+            self._logger.debug(f"Text input successful | selector={resolved_selector}")
         except Exception as e:
-            self._logger.error(f"Text input failed | selector={selector}, error={e}")
-            raise RuntimeError(f"Failed to input text into '{selector}': {e}") from e
+            self._logger.error(f"Text input failed | selector={resolved_selector}, error={e}")
+            raise RuntimeError(f"Failed to input text into '{resolved_selector}': {e}") from e
 
     def hover(self, selector: Selector, *, timeout_ms: int | None = None) -> None:
         """Hover over element.
@@ -166,25 +195,26 @@ class Ui:
             )
             raise RuntimeError(f"Failed to select option '{value}' in '{selector}': {e}") from e
 
-    def wait_visible(self, selector: Selector, *, timeout_ms: int | None = None) -> None:
+    def wait_visible(self, selector: Union[str, Tuple[str, str]], *, timeout_ms: int | None = None) -> None:
         """Wait for element to be visible.
 
         Args:
-            selector: Element selector
+            selector: Element selector (string or tuple)
             timeout_ms: Override default timeout
 
         Raises:
             Error: If element doesn't become visible within timeout
         """
+        resolved_selector = self._resolve_locator(selector)
         timeout = timeout_ms or settings.default_timeout_ms
 
-        self._logger.debug(f"Waiting for element visible | selector={selector}")
+        self._logger.debug(f"Waiting for element visible | selector={resolved_selector}")
         try:
-            self._page.wait_for_selector(selector, state="visible", timeout=timeout)
-            self._logger.debug(f"Element visible | selector={selector}")
+            self._page.wait_for_selector(resolved_selector, state="visible", timeout=timeout)
+            self._logger.debug(f"Element visible | selector={resolved_selector}")
         except Exception as e:
-            self._logger.error(f"Wait visible failed | selector={selector}, error={e}")
-            raise RuntimeError(f"Element '{selector}' did not become visible: {e}") from e
+            self._logger.error(f"Wait visible failed | selector={resolved_selector}, error={e}")
+            raise RuntimeError(f"Element '{resolved_selector}' did not become visible: {e}") from e
 
     def wait_hidden(self, selector: Selector, *, timeout_ms: int | None = None) -> None:
         """Wait for element to be hidden.

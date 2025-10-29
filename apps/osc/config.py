@@ -25,10 +25,10 @@ class OSCSettings:
 
     def __init__(self) -> None:
         """Initialize OSC settings from environment variables."""
-        self.base_url = get_env("OSC_BASE_URL", "https://osc-demo.example.com")
-        self.login_path = get_env("OSC_LOGIN_PATH", "/login")
-        self.dashboard_path = get_env("OSC_DASHBOARD_PATH", "/dashboard")
-        self.quote_path = get_env("OSC_QUOTE_PATH", "/quote/create")
+        self.base_url = get_env("OSC_BASE_URL", "https://uno.eftsecure.net")
+        self.login_path = get_env("OSC_LOGIN_PATH", "/SalesCenter/frmHome.aspx")
+        self.dashboard_path = get_env("OSC_DASHBOARD_PATH", "/SalesCenter/frmHome.aspx")
+        self.quote_path = get_env("OSC_QUOTE_PATH", "/SalesCenter/quote/create")
         self.timeout_ms = get_env_int("OSC_TIMEOUT_MS", default=30000)
 
     @property
@@ -42,9 +42,9 @@ class OSCSettings:
         return f"{self.base_url}{self.dashboard_path}"
 
     @property
-    def quote_url(self) -> str:
-        """Full quote creation URL."""
-        return f"{self.base_url}{self.quote_path}"
+    def mfa_url(self) -> str:
+        """Full MFA page URL."""
+        return f"{self.base_url}{self.mfa_path}"
 
 
 # Singleton instance

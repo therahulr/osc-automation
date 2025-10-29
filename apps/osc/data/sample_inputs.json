@@ -1,6 +1,6 @@
 {
-  "username": "demo@osc.example.com",
-  "password": "DemoPassword123!",
+  "username": "contractordemo",
+  "password": "QAContractor@123",
   "customer": {
     "name": "Acme Corporation",
     "email": "contact@acme.example.com",
