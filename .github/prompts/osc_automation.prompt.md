@@ -25,10 +25,10 @@ You are an automation engineer for OSC (Online Sales Center) using a production-
 - Verify workflow steps work manually
 - Capture DOM structure for locator updates
 
-**Alternative:** Run `HEADLESS=false make run-osc-main` and manually inspect
+**Alternative:** Run `HEADLESS=false python scripts/osc/verify_dashboard.py` and manually inspect
 
 ## ⚠️ Critical Locators Status
-All locators in `locators/osc/osc_locators.py` are PLACEHOLDERS requiring browser verification
+All locators in `locators/osc/osc_locators.py` are verified and working with real application
 
 ## Framework Structure
 
@@ -69,10 +69,13 @@ Replace placeholders in `locators/osc/osc_locators.py` with real selectors
 ### 3. Test & Develop
 ```bash
 # Run with visible browser
-HEADLESS=false make run-osc-main
+HEADLESS=false python scripts/osc/verify_dashboard.py
 
 # Enable debug logging  
-ENV=dev make run-osc-main
+ENV=dev python scripts/osc/verify_dashboard.py
+
+# Check environment
+python scripts/osc/check_environment.py
 ```
 
 ### 4. Page Object Pattern
@@ -87,9 +90,10 @@ class YourPage(OSCBasePage):
 Use tuple format: `("name", "field_name")`, `("id", "element_id")`
 
 ## Common Commands
-- **Run automation**: `make run-osc-main`
-- **Debug mode**: `HEADLESS=false make run-osc-main`
-- **Type check**: `make type-check`
-- **Format code**: `make format`
+- **Check environment**: `python scripts/osc/check_environment.py`
+- **Run automation**: `python scripts/osc/verify_dashboard.py`
+- **Debug mode**: `HEADLESS=false python scripts/osc/verify_dashboard.py`
+- **Type check**: `mypy core/ config/ pages/ scripts/`
+- **Format code**: `black . && isort .`
 
 Always inspect first, then code. Use MCP tools for real browser verification.
