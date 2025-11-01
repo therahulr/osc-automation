@@ -27,13 +27,13 @@ run-osc-verify: ## Verify OSC dashboard accessibility (login + verify)
 	@echo "Running OSC dashboard verification..."
 	@source venv/bin/activate && export PYTHONPATH=$(PWD):$$PYTHONPATH && python scripts/osc/verify_dashboard.py
 
-run-osc-main: ## Run OSC main automation script  
-	@echo "Running OSC main automation script..."
-	@source venv/bin/activate && export PYTHONPATH=$(PWD):$$PYTHONPATH && python scripts/osc/main.py
-
 run-osc-main: ## Run main OSC automation workflow
 	@echo "Running main OSC automation workflow..."
 	python scripts/osc/main.py
+
+check-env: ## Check and validate current environment configuration
+	@echo "Checking environment configuration..."
+	python scripts/osc/check_environment.py
 
 fmt: ## Format code with ruff
 	@echo "Formatting code..."

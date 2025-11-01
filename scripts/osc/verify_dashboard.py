@@ -56,10 +56,15 @@ def verify_osc_dashboard() -> bool:
         logger.info(f"Step 2: Navigating to login page | url={login_url}")
         page.goto(login_url)
         
-        # Step 3: Fill login credentials
+        # Step 3: Fill login credentials based on environment
         logger.info("Step 3: Entering login credentials")
-        username = get_env("OSC_USER")
-        password = get_env("OSC_PASS")
+        from config.osc.config import osc_settings
+        username, password = osc_settings.credentials
+        
+        # Log environment for clarity
+        env_info = f"environment={osc_settings.environment}"
+        safety_info = f"production_safe={osc_settings.is_production_safe}"
+        logger.info(f"Using credentials for {env_info} | {safety_info}")
         
         ui.input_text(LoginPageLocators.USERNAME_FIELD, username)
         ui.input_text(LoginPageLocators.PASSWORD_FIELD, password)

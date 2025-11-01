@@ -45,6 +45,19 @@ All locators in `locators/osc/osc_locators.py` are PLACEHOLDERS requiring browse
 - **Credentials**: contractordemo / QAContractor@123
 - **Workflow**: Login → MFA bypass → Dashboard verification
 
+## ⚠️ CRITICAL PRODUCTION SAFETY
+**NEVER SUBMIT/SAVE DATA IN PRODUCTION ENVIRONMENT**
+- Development uses PROD OSC with contractordemo credentials
+- This is for automation development and testing ONLY
+- NO data submission, saving, or modifications in PROD
+- For actual work: Clone to org laptop → Use QA environment → Submit there
+
+## Environment Configuration
+- **PROD (Development)**: contractordemo / QAContractor@123 (READ-ONLY)
+- **QA (Org Laptop)**: ContractorQA / QAContractor!123 (Full Operations)
+- Set `ENV=prod` or `ENV=qa` in .env file to switch configurations
+- Use `ENV=qa` only on org laptop with QA credentials
+
 ## Quick Development
 
 ### 1. Inspect Elements (Required First Step)
