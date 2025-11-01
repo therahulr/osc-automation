@@ -21,11 +21,15 @@ setup: install ## Setup project (alias for install)
 
 run-osc-login: ## Run OSC login and quote creation script
 	@echo "Running OSC automation workflow..."
-	python scripts/osc/login_and_create_quote.py
+	@source venv/bin/activate && export PYTHONPATH=$(PWD):$$PYTHONPATH && python scripts/osc/login_and_create_quote.py
+
+run-osc-verify: ## Verify OSC dashboard accessibility (login + verify)
+	@echo "Running OSC dashboard verification..."
+	@source venv/bin/activate && export PYTHONPATH=$(PWD):$$PYTHONPATH && python scripts/osc/verify_dashboard.py
 
 run-osc-main: ## Run OSC main automation script  
 	@echo "Running OSC main automation script..."
-	python scripts/osc/main.py
+	@source venv/bin/activate && export PYTHONPATH=$(PWD):$$PYTHONPATH && python scripts/osc/main.py
 
 run-osc-main: ## Run main OSC automation workflow
 	@echo "Running main OSC automation workflow..."

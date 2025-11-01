@@ -74,7 +74,6 @@ class BrowserManager:
         context_kwargs = {
             "viewport": viewport,
             "accept_downloads": True,
-            "downloads_path": str(downloads_path),
         }
 
         # Persistent context (user profile) OR standard context

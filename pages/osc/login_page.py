@@ -25,6 +25,30 @@ class LoginPage(OSCBasePage):
         self.logger.info(f"Opening login page | url={self.settings.login_url}")
         self.ui.goto(self.settings.login_url)
 
+    def login(self, username: str, password: str) -> None:
+        """Complete login workflow with MFA bypass.
+        
+        Args:
+            username: Username for login
+            password: Password for login
+        """
+        self.logger.info(f"Starting login workflow | username={username}")
+        
+        # Enter credentials
+        self.enter_username(username)
+        self.enter_password(password)
+        
+        # Submit login
+        self.click_login_button()
+        
+        # Handle MFA bypass
+        self.bypass_mfa_to_dashboard()
+        
+        # Verify we reached dashboard
+        self.verify_dashboard_loaded()
+        
+        self.logger.info("✓ Login workflow completed successfully")
+
     def enter_username(self, username: str) -> None:
         """Enter username in the login form.
         
