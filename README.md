@@ -1,6 +1,6 @@
 # OSC Automation Framework
 
-Production-grade, modular Playwright (Python) automation framework for multi-app workflow orchestration.
+OSC (Online Sales Center) automation framework using Playwright for login, navigation, and dashboard verification.
 
 ## Architecture
 
@@ -14,28 +14,22 @@ automation/
 │   ├── utils.py            # Common helpers
 │   └── types.py            # Type aliases
 │
-├── apps/osc/               # OSC application implementation
-│   ├── config.py           # OSC-specific settings
-│   ├── locators/           # Selectors organized by screen
-│   ├── pages/              # Page Objects (clean, composable)
-│   ├── data/               # Test data (JSON)
-│   ├── scripts/            # Automation scripts
-│   ├── logs/               # Application logs
-│   └── reports/            # Screenshots, reports
-│
-└── pyproject.toml          # Dependencies + tooling config
+├── locators/osc/           # OSC-specific selectors organized by screen
+├── pages/osc/              # OSC Page Objects (clean, composable)
+├── config/osc/             # OSC configuration
+├── scripts/osc/            # OSC automation scripts
+├── data/osc/               # OSC test data (JSON)
+├── logs/                   # Application logs
+└── reports/                # Screenshots, reports
 ```
-
-**Future apps** (e.g., `apps/c2a/`) follow the same structure—no changes needed in `core/`.
 
 ## Quick Start
 
 ### 1. Install dependencies
 ```bash
-make install
+pip install -r requirements.txt
+playwright install chromium
 ```
-
-This installs Python packages and Playwright browsers (Chromium).
 
 ### 2. Configure environment
 ```bash
@@ -45,7 +39,7 @@ cp .env.example .env
 
 ### 3. Run example script
 ```bash
-make run-osc-login
+python scripts/osc/verify_dashboard.py
 ```
 
 Executes: Login → Dashboard → Quote navigation (with full logging & error handling).
@@ -65,8 +59,8 @@ make typecheck
 
 ## Adding a New App
 
-1. Create `apps/your_app/` with: `config.py`, `locators/`, `pages/`, `data/`, `scripts/`
-2. Extend `OSCBasePage` pattern for common navigation
+1. Create `locators/your_app/`, `pages/your_app/`, `config/your_app/`, `scripts/your_app/`
+2. Extend base page patterns for common navigation
 3. Import from `core/` only—never cross-import between apps
 4. Add run target in `Makefile`
 
