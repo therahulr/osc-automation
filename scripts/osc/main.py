@@ -13,12 +13,12 @@ import sys
 from pathlib import Path
 
 # Add project root to path for imports
-project_root = Path(__file__).parent.parent.parent.parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
 
-from apps.osc.pages.login_page import LoginPage
+from pages.osc.login_page import LoginPage
 from core.browser import BrowserManager
 from core.config import settings
 from core.logger import Logger

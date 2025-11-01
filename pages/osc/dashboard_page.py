@@ -2,12 +2,12 @@
 
 from playwright.sync_api import Page
 
-from apps.osc.locators.dashboard_locators import (
+from locators.osc.dashboard_locators import (
     CREATE_QUOTE_BUTTON,
     DASHBOARD_SUMMARY,
     NAV_QUOTES,
 )
-from apps.osc.pages.base_page import OSCBasePage
+from pages.osc.base_page import OSCBasePage
 
 
 class DashboardPage(OSCBasePage):

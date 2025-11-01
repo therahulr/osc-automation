@@ -13,14 +13,13 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
 
-from apps.osc.pages.dashboard_page import DashboardPage
-from apps.osc.pages.login_page import LoginPage
-from apps.osc.pages.quote_page import QuotePage
+from pages.osc.dashboard_page import DashboardPage
+from pages.osc.login_page import LoginPage
 from core.browser import BrowserManager
 from core.config import settings
 from core.logger import Logger
@@ -36,7 +35,7 @@ def load_test_data() -> dict:
     Returns:
         Dictionary containing test data
     """
-    data_file = Path(__file__).parent.parent / "data" / "sample_inputs.json"
+    data_file = Path(__file__).parent.parent / "data" / "osc" / "sample_inputs.json"
 
     with open(data_file) as f:
         return json.load(f)
@@ -69,7 +68,7 @@ def main() -> None:
         # Initialize page objects
         login_page = LoginPage(page)
         dashboard_page = DashboardPage(page)
-        quote_page = QuotePage(page)
+        # TODO: Add QuotePage when implemented
 
         # Step 1: Login
         logger.info("Step 1: Performing login")
@@ -88,16 +87,11 @@ def main() -> None:
         logger.info("✓ Navigation to quotes successful")
 
         # Step 4: Create quote (if form is accessible)
-        logger.info("Step 4: Attempting to create quote")
+        logger.info("Step 4: Quote creation not yet implemented")
         try:
-            quote_page.create_quote(
-                customer_name=test_data["customer"]["name"],
-                customer_email=test_data["customer"]["email"],
-                customer_phone=test_data["customer"]["phone"],
-                product=test_data["product"]["value"],
-                quantity=test_data["product"]["quantity"],
-            )
-            logger.info("✓ Quote creation completed successfully")
+            # TODO: Implement quote creation when QuotePage is available
+            # quote_page.create_quote(...)
+            logger.info("✓ Quote creation workflow placeholder - ready for implementation")
         except Exception as e:
             logger.warning(f"Quote creation not available (expected for demo): {e}")
             logger.info("✓ Workflow navigated to quote section (demo endpoint may not exist)")

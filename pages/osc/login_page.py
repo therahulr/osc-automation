@@ -2,8 +2,8 @@
 
 from playwright.sync_api import Page
 
-from apps.osc.locators.osc_locators import DashboardPageLocators, LoginPageLocators, MFAPageLocators
-from apps.osc.pages.base_page import OSCBasePage
+from locators.osc.osc_locators import DashboardPageLocators, LoginPageLocators, MFAPageLocators
+from pages.osc.base_page import OSCBasePage
 
 
 class LoginPage(OSCBasePage):

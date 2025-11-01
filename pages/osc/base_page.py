@@ -4,7 +4,7 @@ from logging import Logger
 
 from playwright.sync_api import Page
 
-from apps.osc.config import osc_settings
+from config.osc.config import osc_settings
 from core.logger import Logger as LoggerFactory
 from core.ui import Ui
 

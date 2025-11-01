@@ -21,15 +21,15 @@ setup: install ## Setup project (alias for install)
 
 run-osc-login: ## Run OSC login and quote creation script
 	@echo "Running OSC automation workflow..."
-	python apps/osc/scripts/login_and_create_quote.py
+	python scripts/osc/login_and_create_quote.py
 
 run-osc-main: ## Run OSC main automation script  
 	@echo "Running OSC main automation script..."
-	python apps/osc/scripts/main.py
+	python scripts/osc/main.py
 
 run-osc-main: ## Run main OSC automation workflow
 	@echo "Running main OSC automation workflow..."
-	python apps/osc/scripts/main.py
+	python scripts/osc/main.py
 
 fmt: ## Format code with ruff
 	@echo "Formatting code..."
