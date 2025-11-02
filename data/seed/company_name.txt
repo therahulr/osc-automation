@@ -1,0 +1,100 @@
+Coca-Cola
+PDD Holdings (Pinduoduo)
+Royal Bank Of Canada
+ServiceNow
+RTX
+LVMH
+China Mobile
+Kweichow Moutai
+L'Oréal
+NVIDIA
+Pepsico
+Tesla
+Arista Networks
+Saudi Aramco
+Commonwealth Bank
+Amazon
+Citigroup
+JPMorgan Chase
+Alibaba
+Novo Nordisk
+Visa
+Eli Lilly
+Johnson & Johnson
+SAP
+SoftBank
+IBM
+Meta Platforms (Facebook)
+Shopify
+HDFC Bank
+Lam Research
+Goldman Sachs
+Roche
+AMD
+AppLovin
+Linde
+Broadcom
+Walmart
+T-Mobile US
+HSBC
+Philip Morris International
+AstraZeneca
+Apple
+Intel
+Agricultural Bank of China
+Exxon Mobil
+SK Hynix
+Toyota
+Applied Materials
+QUALCOMM
+Intuitive Surgical
+ASML
+Walt Disney
+Procter & Gamble
+PetroChina
+Nestlé
+Arm Holdings
+Caterpillar
+Bank of America
+Micron Technology
+Siemens
+General Electric
+Salesforce
+CATL
+Foxconn Industrial Internet
+Novartis
+Microsoft
+Tencent
+Shell
+Berkshire Hathaway
+Samsung
+Merck
+Intuit
+Mastercard
+McDonald
+AbbVie
+Palantir
+Blackstone Group
+UnitedHealth
+Costco
+Abbott Laboratories
+Bank of China
+Prosus
+Cisco
+China Construction Bank
+Chevron
+Netflix
+Hermès
+International Holding Company
+Oracle
+American Express
+TSMC
+Uber
+ICBC
+Alphabet (Google)
+Reliance Industries
+Thermo Fisher Scientific
+Home Depot
+Morgan Stanley
+Airbus
+Wells Fargo

@@ -30,7 +30,7 @@ class Settings:
 
     def __init__(self) -> None:
         """Initialize settings from environment variables with sensible defaults."""
-        self.headless = get_env_bool("HEADLESS", default=True)
+        self.headless = get_env_bool("HEADLESS", default=False)
         self.incognito = get_env_bool("INCOGNITO", default=True)
         self.slow_mo_ms = get_env_int("SLOW_MO_MS", default=0)
         self.default_timeout_ms = get_env_int("DEFAULT_TIMEOUT_MS", default=30000)

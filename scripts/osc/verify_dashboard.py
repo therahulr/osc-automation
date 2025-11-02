@@ -23,7 +23,7 @@ from core.config import settings
 from core.logger import Logger
 from core.ui import Ui
 from core.utils import get_env, now_ts
-from locators.osc.osc_locators import DashboardPageLocators, LoginPageLocators, MFAPageLocators
+from locators.osc_locators import DashboardPageLocators, LoginPageLocators, MFAPageLocators
 
 # Load environment variables
 load_dotenv()

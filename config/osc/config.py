@@ -29,8 +29,10 @@ class OSCSettings:
     def __init__(self) -> None:
         """Initialize OSC settings from environment variables."""
         self.base_url = get_env("OSC_BASE_URL", "https://uno.eftsecure.net")
-        self.login_path = get_env("OSC_LOGIN_PATH", "/SalesCenter/frmHome.aspx")
+        self.login_path = get_env("OSC_LOGIN_PATH", "/SalesCenter/")
         self.dashboard_path = get_env("OSC_DASHBOARD_PATH", "/SalesCenter/frmHome.aspx")
+        self.new_application_path = get_env("OSC_NEW_APP_PATH", "/SalesCenter/frmNewApplication.aspx")
+        self.mfa_path = get_env("OSC_MFA_PATH", "/SalesCenter/mfa")
         self.quote_path = get_env("OSC_QUOTE_PATH", "/SalesCenter/quote/create")
         self.timeout_ms = get_env_int("OSC_TIMEOUT_MS", default=30000)
         self.environment = get_env("OSC_ENV", "prod").lower()
@@ -63,6 +65,11 @@ class OSCSettings:
     def dashboard_url(self) -> str:
         """Full dashboard URL."""
         return f"{self.base_url}{self.dashboard_path}"
+
+    @property
+    def new_application_url(self) -> str:
+        """Full new application URL."""
+        return f"{self.base_url}{self.new_application_path}"
 
     @property
     def mfa_url(self) -> str:
