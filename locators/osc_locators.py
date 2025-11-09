@@ -19,9 +19,20 @@ class LoginPageLocators:
 
 
 class NavigationLocators:
+    # Top Menu Navigation
+    APPLICATIONS_MENU = "//a[text()='Applications']"
+    NEW_APPLICATION_LINK = "//a[text()='New Application']"
+    
+    # Step 1 - Sales Representative Selection
     TABLE_ROWS = "//table//tr[td]"
-    NEXT_BUTTON_TEXT = "Next"
-    NEW_CORPORATION_TEXT = "new corporation"
+    STEP1_NEXT_BUTTON = "#ctl00_ContentPlaceHolder2_NewAppWizard_StartNavigationTemplateContainerID_StartNextButton"
+    
+    # Step 2 - Existing Merchant Selection
+    NEW_CORPORATION_RADIO = "#ctl00_ContentPlaceHolder2_NewAppWizard_rdExistingMechList_1"
+    STEP2_NEXT_BUTTON = "#ctl00_ContentPlaceHolder2_NewAppWizard_StepNavigationTemplateContainerID_StepNextButton"
+    
+    # Step 3 - New Application Page
+    APPLICATION_INFORMATION_HEADER = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_lblTitle"
 
 
 class MFAPageLocators:

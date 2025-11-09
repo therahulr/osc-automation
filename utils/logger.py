@@ -80,4 +80,16 @@ def get_logger(name: str) -> logging.Logger:
     Returns:
         logging.Logger: Configured logger instance
     """
+    # If the core Logger singleton has been initialized, prefer using it
+    try:
+        # Import inside function to avoid circular imports at module import time
+        from core.logger import Logger as CoreLogger
+
+        if getattr(CoreLogger, "_instance", None) is not None:
+            # Return the core singleton logger so all modules share the same handlers
+            return CoreLogger._instance
+    except Exception:
+        # If core.logger is not available or any error occurs, fall back
+        pass
+
     return logging.getLogger(name)

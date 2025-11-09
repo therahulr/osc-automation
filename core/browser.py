@@ -117,6 +117,40 @@ class BrowserManager:
 
         return page
 
+    def get_page(
+        self,
+        user_profile_dir: Optional[str] = None,
+        incognito: Optional[bool] = None,
+        viewport: Optional[dict] = None,
+    ) -> Page:
+        """Get a ready-to-use page with automatic browser setup.
+        
+        This is a convenience method that handles the full browser lifecycle:
+        launch -> new_context -> new_page
+        
+        Args:
+            user_profile_dir: Path to user profile directory (persistent context)
+            incognito: Override default incognito setting from config
+            viewport: Custom viewport size (default: maximized 1920x1080)
+            
+        Returns:
+            New Page instance ready for automation
+        """
+        if self._browser is None:
+            self.launch()
+        
+        context = self.new_context(user_profile_dir, incognito, viewport)
+        return self.new_page(context)
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - automatically close browser."""
+        self.close()
+        return False
+
     def close(self) -> None:
         """Close all contexts, browser, and cleanup resources.
 

@@ -10,9 +10,6 @@ from pages.osc.base_page import BasePage
 from config.osc.config import osc_settings
 from locators.osc_locators import LoginPageLocators
 from utils.decorators import timeit, retry, log_step
-from utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class LoginPage(BasePage):
@@ -43,7 +40,7 @@ class LoginPage(BasePage):
     
     def _perform_login(self, username: str, password: str) -> bool:
         """Perform the actual login form submission."""
-        logger.info(f"Performing login for user: {username}")
+        self.logger.info(f"Performing login for user: {username}")
         
         # Fill in the login form
         self.page.fill(LoginPageLocators.USERNAME_FIELD, username)
@@ -51,7 +48,7 @@ class LoginPage(BasePage):
         
         # Click the login button
         self.page.click(LoginPageLocators.LOGIN_BUTTON)
-        logger.info("Login form submitted")
+        self.logger.info("Login form submitted")
         self.page.wait_for_timeout(2000)
         return True
     

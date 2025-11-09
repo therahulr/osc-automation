@@ -4,83 +4,79 @@ OSC Navigation automation - Simple workflow steps
 
 from playwright.sync_api import Page
 from pages.osc.base_page import BasePage
-from pages.osc.login_page import LoginPage
-from config.osc.config import osc_settings
 from data.data_importer import DataImporter
 from utils.decorators import timeit, log_step
-from utils.locator_utils import build_table_row_checkbox_locator, build_radio_button_locator, build_button_locator
+from utils.locator_utils import build_table_row_checkbox_locator
 from utils.logger import get_logger
 from locators.osc_locators import NavigationLocators
 
-logger = get_logger(__name__)
+# Use logger attached to BasePage instances (self.logger). Module-level
+# logger creation is avoided so the page objects can share the core
+# Logger singleton when it is initialized by the script.
 
 
 class NavigationSteps(BasePage):
     
     def __init__(self, page: Page):
         super().__init__(page)
-        self.login_page = LoginPage(page)
         self.data = DataImporter()
     
     @timeit
     @log_step
-    def create_new_application(self, username: str, password: str) -> bool:
-        """Navigate to new application page with complete setup"""
-        return (self._login(username, password) and 
-                self._navigate_to_new_application() and 
-                self._select_sales_representative() and
-                self._select_new_corporation())
-    
-    def _login(self, username: str, password: str) -> bool:
-        return self.login_page.complete_login(username, password)
-    
-    def _navigate_to_new_application(self) -> bool:
-        """Navigate to new application form"""
-        self.page.goto(osc_settings.new_application_url)
-        self.page.wait_for_timeout(2000)
-        return "Application" in self.page.url
-    
-    def _select_sales_representative(self) -> bool:
-        """Select sales rep and click next"""
-        sales_rep_name = self.data.get_sales_rep_name()
+    def navigate_to_new_application_page(self) -> Page:
+        """Complete new application navigation workflow
         
-        # Wait for table and select sales rep
+        Returns:
+            Page: The new application page object for subsequent automation steps
+        """
+        # 1. Click on Applications menu
+        self.logger.info("Step 1: Clicking Applications menu")
+        self.page.click(NavigationLocators.APPLICATIONS_MENU)
+
+        # 2. Click on New Application
+        self.logger.info("Step 2: Clicking New Application")
+        self.page.click(NavigationLocators.NEW_APPLICATION_LINK)
+
+        # 3. Wait for Step 1 to load
+        self.logger.info("Step 3: Waiting for Step 1 to load")
         self.page.wait_for_selector(NavigationLocators.TABLE_ROWS, timeout=10000)
+
+        # 4. Select sales representative DEMONET1
+        self.logger.info("Step 4: Selecting sales representative")
+        sales_rep_name = self.data.get_sales_rep_name()
         locator = build_table_row_checkbox_locator(sales_rep_name)
-        
         checkbox = self.page.locator(locator)
         if not checkbox.is_checked():
             checkbox.check()
-        
-        return self._click_next()
-    
-    def _select_new_corporation(self) -> bool:
-        """Select new corporation option and proceed"""
-        radio_selectors = build_radio_button_locator(NavigationLocators.NEW_CORPORATION_TEXT)
-        
-        for selector in radio_selectors:
-            try:
-                element = self.page.locator(selector)
-                if element.count() > 0 and element.is_visible():
-                    element.check()
-                    break
-            except:
-                continue
-        
-        return self._click_next()
-    
-    def _click_next(self) -> bool:
-        """Click next/continue button"""
-        button_selectors = build_button_locator(NavigationLocators.NEXT_BUTTON_TEXT)
-        
-        for selector in button_selectors:
-            try:
-                button = self.page.locator(selector)
-                if button.count() > 0 and button.is_visible():
-                    button.click()
-                    self.page.wait_for_timeout(2000)
-                    return True
-            except:
-                continue
-        
-        return True
+
+        # 5. Click Next button (Step 1)
+        self.logger.info("Step 5: Clicking Next button (Step 1)")
+        self.page.click(NavigationLocators.STEP1_NEXT_BUTTON)
+
+        # 6. Wait for Step 2 to load
+        self.logger.info("Step 6: Waiting for Step 2 to load")
+        self.page.wait_for_selector(NavigationLocators.NEW_CORPORATION_RADIO, timeout=10000)
+
+        # 7. Select "No, this is a new corporation" radio button
+        self.logger.info("Step 7: Selecting 'No, this is a new corporation'")
+        self.page.click(NavigationLocators.NEW_CORPORATION_RADIO)
+
+        # 8. Wait for new tab to open and click Next button (Step 2)
+        self.logger.info("Step 8: Setting up popup handler and clicking Next button (Step 2)")
+        with self.page.expect_popup() as popup_info:
+            self.page.click(NavigationLocators.STEP2_NEXT_BUTTON)
+
+        # 9. Switch to the new tab
+        new_page = popup_info.value
+        self.logger.info(f"Step 9: New tab opened, switching to URL: {new_page.url}")
+
+        # 10. Wait for application form to load in new tab
+        self.logger.info("Step 10: Waiting for application form to load in new tab")
+        new_page.wait_for_selector(NavigationLocators.APPLICATION_INFORMATION_HEADER, timeout=10000)
+
+        # Update page reference to new tab
+        self.page = new_page
+        self.logger.info(f"✅ Successfully switched to new application page: {self.page.url}")
+
+        self.logger.info("✅ Successfully navigated to new application page")
+        return new_page

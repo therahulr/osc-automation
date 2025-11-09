@@ -4,6 +4,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from datetime import datetime
 
 from core.utils import ensure_dir, get_env
 
@@ -61,12 +62,16 @@ class Logger:
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
-        # File handler under app's logs/ directory
-        log_dir = Path.cwd() / "apps" / app_name / "logs"
+        # File handler with date-time organization: logs/app/YYYY-MM-DD/app_HH_MM_AM_PM.log
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%I_%M_%p")  # 09_15_AM or 02_30_PM format
+        
+        log_dir = Path.cwd() / "logs" / app_name / date_str
         ensure_dir(log_dir)
         cls._log_dir = log_dir
 
-        log_file = log_dir / "automation.log"
+        log_file = log_dir / f"{app_name}_{time_str}.log"
         file_handler = RotatingFileHandler(
             log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
@@ -77,7 +82,7 @@ class Logger:
         logger.addHandler(file_handler)
 
         logger.info(
-            f"Logger initialized for app '{app_name}' | Log level: {logging.getLevelName(log_level)}"
+            f"Logger initialized for app '{app_name}' | Log level: {logging.getLevelName(log_level)} | Log file: {log_file}"
         )
 
         return logger
