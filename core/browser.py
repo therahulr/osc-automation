@@ -1,7 +1,10 @@
-"""Browser lifecycle management with Playwright."""
+"""Browser lifecycle management with Playwright and Performance Tracking."""
 
 from pathlib import Path
 from typing import Optional
+import time
+import sqlite3
+from datetime import datetime
 
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
@@ -17,18 +20,25 @@ class BrowserManager:
     and trace collection based on global settings.
     """
 
-    def __init__(self) -> None:
-        """Initialize browser manager."""
+    def __init__(self, enable_performance_tracking: bool = True) -> None:
+        """Initialize browser manager.
+        
+        Args:
+            enable_performance_tracking: Enable automatic performance tracking
+        """
         self._playwright = None
         self._browser: Browser | None = None
         self._contexts: list[BrowserContext] = []
         self._logger = Logger.get()
+        self._performance_tracking = enable_performance_tracking
 
     def launch(self) -> None:
         """Launch browser with configured settings.
 
         Uses Chromium by default with settings from core.config.
         """
+        launch_start = time.time()
+        
         self._logger.info(
             f"Launching browser | headless={settings.headless}, slow_mo={settings.slow_mo_ms}ms"
         )
@@ -38,7 +48,28 @@ class BrowserManager:
             headless=settings.headless, slow_mo=settings.slow_mo_ms
         )
 
-        self._logger.info("Browser launched successfully")
+        launch_duration = time.time() - launch_start
+        self._logger.info(f"Browser launched successfully in {launch_duration:.2f}s")
+        
+        # Track browser launch performance if performance tracking is enabled
+        if self._performance_tracking:
+            try:
+                from core.performance import performance_tracker
+                session = performance_tracker.get_current_session()
+                if session:
+                    with sqlite3.connect(performance_tracker.db_path) as conn:
+                        conn.execute("""
+                            INSERT INTO browser_metrics (
+                                run_id, session_id, recorded_at, page_load_time, 
+                                viewport_size
+                            ) VALUES (?, ?, ?, ?, ?)
+                        """, (
+                            session['run_id'], session['session_id'],
+                            datetime.now(), launch_duration,
+                            f"{settings.viewport_width}x{settings.viewport_height}" if hasattr(settings, 'viewport_width') else None
+                        ))
+            except Exception as e:
+                self._logger.debug(f"Could not track browser launch performance: {e}")
 
     def new_context(
         self,
@@ -100,22 +131,141 @@ class BrowserManager:
         return context
 
     def new_page(self, context: BrowserContext) -> Page:
-        """Create new page in given context.
+        """Create new page in given context with performance tracking.
 
         Args:
             context: BrowserContext to create page in
 
         Returns:
-            New Page instance
+            New Page instance with optional performance monitoring
         """
         self._logger.debug("Creating new page in context")
+        page_start = time.time()
+        
         page = context.new_page()
 
         # Set default timeouts from settings
         page.set_default_timeout(settings.default_timeout_ms)
         page.set_default_navigation_timeout(settings.nav_timeout_ms)
+        
+        page_creation_time = time.time() - page_start
+        self._logger.debug(f"Page created in {page_creation_time:.3f}s")
+
+        # Add performance tracking hooks if enabled
+        if self._performance_tracking:
+            self._add_performance_hooks(page)
 
         return page
+    
+    def _add_performance_hooks(self, page: Page):
+        """Add performance tracking hooks to page object"""
+        try:
+            from core.performance import performance_tracker
+            
+            # Only add hooks if we have an active performance session
+            session = performance_tracker.get_current_session()
+            if not session:
+                return
+            
+            # Store original methods
+            original_goto = page.goto
+            original_wait_for_selector = page.wait_for_selector
+            original_click = page.click
+            original_fill = page.fill
+            
+            def tracked_goto(url, **kwargs):
+                start_time = time.time()
+                try:
+                    result = original_goto(url, **kwargs)
+                    duration = time.time() - start_time
+                    self._track_page_navigation(url, duration, True)
+                    return result
+                except Exception as e:
+                    duration = time.time() - start_time
+                    self._track_page_navigation(url, duration, False, str(e))
+                    raise
+            
+            def tracked_wait_for_selector(selector, **kwargs):
+                start_time = time.time()
+                try:
+                    result = original_wait_for_selector(selector, **kwargs)
+                    duration = time.time() - start_time
+                    self._track_element_wait(selector, duration, True)
+                    return result
+                except Exception as e:
+                    duration = time.time() - start_time
+                    self._track_element_wait(selector, duration, False, str(e))
+                    raise
+            
+            def tracked_click(selector, **kwargs):
+                start_time = time.time()
+                try:
+                    result = original_click(selector, **kwargs)
+                    duration = time.time() - start_time
+                    self._track_element_action('click', selector, duration, True)
+                    return result
+                except Exception as e:
+                    duration = time.time() - start_time
+                    self._track_element_action('click', selector, duration, False, str(e))
+                    raise
+            
+            def tracked_fill(selector, value, **kwargs):
+                start_time = time.time()
+                try:
+                    result = original_fill(selector, value, **kwargs)
+                    duration = time.time() - start_time
+                    self._track_element_action('fill', selector, duration, True, value=value)
+                    return result
+                except Exception as e:
+                    duration = time.time() - start_time
+                    self._track_element_action('fill', selector, duration, False, value=value, error=str(e))
+                    raise
+            
+            # Apply tracking wrappers
+            page.goto = tracked_goto
+            page.wait_for_selector = tracked_wait_for_selector
+            page.click = tracked_click
+            page.fill = tracked_fill
+            
+        except Exception as e:
+            self._logger.debug(f"Could not add performance hooks: {e}")
+    
+    def _track_page_navigation(self, url: str, duration: float, success: bool, error: str = None):
+        """Track page navigation performance"""
+        try:
+            from core.performance import performance_tracker
+            session = performance_tracker.get_current_session()
+            if session:
+                with sqlite3.connect(performance_tracker.db_path) as conn:
+                    conn.execute("""
+                        INSERT INTO browser_metrics (
+                            run_id, session_id, recorded_at, page_load_time, page_url
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """, (session['run_id'], session['session_id'], datetime.now(), duration, url))
+        except Exception as e:
+            self._logger.debug(f"Could not track navigation: {e}")
+    
+    def _track_element_wait(self, selector: str, duration: float, success: bool, error: str = None):
+        """Track element wait performance"""
+        try:
+            from core.performance import performance_tracker
+            session = performance_tracker.get_current_session()
+            if session:
+                # This would ideally be linked to a current step, but for now just log it
+                self._logger.debug(f"Element wait: {selector} took {duration:.3f}s, success: {success}")
+        except Exception as e:
+            self._logger.debug(f"Could not track element wait: {e}")
+    
+    def _track_element_action(self, action: str, selector: str, duration: float, success: bool, **kwargs):
+        """Track element action performance"""
+        try:
+            from core.performance import performance_tracker
+            session = performance_tracker.get_current_session()
+            if session:
+                # This would ideally be linked to a current step, but for now just log it
+                self._logger.debug(f"Element {action}: {selector} took {duration:.3f}s, success: {success}")
+        except Exception as e:
+            self._logger.debug(f"Could not track element action: {e}")
 
     def get_page(
         self,
