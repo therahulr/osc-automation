@@ -4,6 +4,9 @@ playwright>=1.40.0
 # Environment and configuration
 python-dotenv>=1.0.0
 
+# Terminal output and formatting
+rich>=13.7.0
+
 # Development and testing (optional but recommended)
 pytest>=7.4.0
 pytest-playwright>=0.4.0
