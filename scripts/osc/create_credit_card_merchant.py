@@ -12,6 +12,7 @@ logger = Logger.get("osc")
 from config.osc.config import osc_settings
 from pages.osc.login_page import LoginPage
 from pages.osc.navigation_steps import NavigationSteps
+from pages.osc.new_application_page import NewApplicationPage
 
 
 def create_credit_card_merchant():
@@ -54,8 +55,26 @@ def create_credit_card_merchant():
                 logger.info(f"✅ New application page opened successfully: {application_page.url}")
                 print(f"✓ New application page opened: {application_page.url}")
                 
-                # Future steps will use application_page for further automation
-                # TODO: Add merchant creation steps here
+                # Step 3: Fill Application Information section
+                logger.info("Step 3: Starting Application Information section automation")
+                new_app_page = NewApplicationPage(application_page)
+                
+                # Fill the Application Information section
+                app_info_results = new_app_page.fill_application_information()
+                
+                # Check if all operations were successful
+                successful_operations = sum(1 for result in app_info_results.values() if result)
+                total_operations = len(app_info_results)
+                
+                if successful_operations == total_operations:
+                    logger.info("✅ Application Information section completed successfully")
+                    print("✓ Application Information section filled successfully")
+                else:
+                    failed_fields = [field for field, result in app_info_results.items() if not result]
+                    logger.warning(f"⚠️ Application Information partially completed. Failed fields: {failed_fields}")
+                    print(f"⚠️ Application Information partially completed. Failed: {failed_fields}")
+                
+                # TODO: Add next sections (Corporate Information, Location Information, etc.)
                 
                 return application_page
             else:

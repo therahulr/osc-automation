@@ -28,6 +28,18 @@ MERCHANT_PRODUCTS = [
     "Credit"
 ]
 
+# Application Information Section
+APPLICATION_INFO = {
+    "office": "DEMO NET1",
+    "phone": "7038529999",
+    "contractor": "DEMONET1",
+    "association": "TestWelcomeEmails",
+    "lead_source": "Yellow Pages",
+    "referral_partner": "None",
+    "promo_code": "",  # Optional field
+    "corporate_atlas_id": ""  # Optional field
+}
+
 # Merchant Business Information
 MERCHANT_INFO = {
     "legal_business_name": "Rahul " + faker.company_suffix(),

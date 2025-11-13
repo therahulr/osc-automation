@@ -49,3 +49,42 @@ class MFAPageLocators:
 
 class DashboardPageLocators:
     pass
+
+
+class NewApplicationPageLocators:
+    """Locators for the New Application page - Application Information section"""
+    
+    # Application Information Section
+    APPLICATION_INFO_SECTION = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_lblTitle"
+    
+    # Office (display only - dynamic xpath)
+    OFFICE_DISPLAY = "//span[normalize-space(.)='{office_name}']"
+    
+    # Phone (display only)
+    PHONE_DISPLAY = "//span[contains(text(), '{phone}')]"
+    
+    # Contractor (display only - dynamic xpath)
+    CONTRACTOR_DISPLAY = "//span[normalize-space(text())='{contractor_name}']"
+    
+    # Association dropdown
+    ASSOCIATION_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlAssociation"
+    ASSOCIATION_DROPDOWN_ALT = "//select[@name='ctl00$ContentPlaceHolder1$ctrlApplicationInfo1$FormView1$ddlAssociation']"
+    ASSOCIATION_OPTION = "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlAssociation']/option[normalize-space(.)='{association_name}']"
+    
+    # Lead Source dropdown
+    LEAD_SOURCE_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlLeadSource"
+    LEAD_SOURCE_DROPDOWN_ALT = "//select[@name='ctl00$ContentPlaceHolder1$ctrlApplicationInfo1$FormView1$ddlLeadSource']"
+    LEAD_SOURCE_OPTION = "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlLeadSource']/option[normalize-space(.)='{lead_source_name}']"
+    
+    # Referral Partner dropdown
+    REFERRAL_PARTNER_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlReferralPartner"
+    REFERRAL_PARTNER_DROPDOWN_ALT = "//select[@name='ctl00$ContentPlaceHolder1$ctrlApplicationInfo1$FormView1$ddlReferralPartner']"
+    REFERRAL_PARTNER_OPTION = "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_ddlReferralPartner']/option[normalize-space(.)='{referral_partner_name}']"
+    
+    # Promo Code input
+    PROMO_CODE_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_txtPromoCode"
+    PROMO_CODE_INPUT_ALT = "//input[@name='ctl00$ContentPlaceHolder1$ctrlApplicationInfo1$FormView1$txtPromoCode']"
+    
+    # Corporate Atlas ID input
+    CORPORATE_ATLAS_ID_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_FormView1_txtCorpAtlasID"
+    CORPORATE_ATLAS_ID_INPUT_ALT = "//input[@name='ctl00$ContentPlaceHolder1$ctrlApplicationInfo1$FormView1$txtCorpAtlasID']"
