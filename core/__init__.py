@@ -24,9 +24,9 @@ from core.browser import BrowserManager
 from core.ui import Ui
 
 # Logging
-from core.logger import Logger
-from core.colored_logger import (
-    ColoredLogger,
+from core.logging_system import (
+    AutomationLogger,
+    get_logger,
     log_success,
     log_step,
     log_metric,
@@ -64,8 +64,8 @@ __all__ = [
     "BrowserManager",
     "Ui",
     # Logging
-    "Logger",
-    "ColoredLogger",
+    "AutomationLogger",
+    "get_logger",
     "log_success",
     "log_step",
     "log_metric",

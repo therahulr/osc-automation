@@ -23,7 +23,7 @@ from datetime import datetime
 
 from playwright.sync_api import Page, Locator, ElementHandle
 
-from core.logger import Logger
+from core.logging_system import get_logger
 from core.ui import Ui
 
 
@@ -50,7 +50,7 @@ class BaseComponent:
         """
         self.page = page
         self.ui = Ui(page)
-        self.logger = logger or Logger.get()
+        self.logger = logger or get_logger()
         self.root_selector = root_selector
         self._root_element: Optional[Locator] = None
 

@@ -9,7 +9,7 @@ from datetime import datetime
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 from core.config import settings
-from core.logger import Logger
+from core.logging_system import get_logger
 from core.utils import ensure_dir
 
 
@@ -29,7 +29,7 @@ class BrowserManager:
         self._playwright = None
         self._browser: Browser | None = None
         self._contexts: list[BrowserContext] = []
-        self._logger = Logger.get()
+        self._logger = get_logger()
         self._performance_tracking = enable_performance_tracking
 
     def launch(self) -> None:

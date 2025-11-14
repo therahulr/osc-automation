@@ -106,21 +106,21 @@ class PerformanceReporter:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT
-                    id, name, type, duration, status, order_index, error_message
+                    id, step_name, step_type, duration, status, step_order, error_message
                 FROM step_metrics
                 WHERE run_id = ?
-                ORDER BY order_index ASC
+                ORDER BY step_order ASC
             """, (run_id,))
 
             steps = []
             for row in cursor.fetchall():
                 steps.append(StepSummary(
                     step_id=row['id'],
-                    name=row['name'],
-                    type=row['type'],
+                    name=row['step_name'],
+                    type=row['step_type'],
                     duration=row['duration'] or 0.0,
                     status=row['status'],
-                    order_index=row['order_index'],
+                    order_index=row['step_order'] or 0,
                     error_message=row['error_message']
                 ))
 

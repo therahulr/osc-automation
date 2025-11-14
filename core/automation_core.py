@@ -41,7 +41,7 @@ from datetime import datetime
 from playwright.sync_api import Page, BrowserContext
 
 from core.browser import BrowserManager
-from core.logger import Logger
+from core.logging_system import get_logger
 from core.config import settings
 from core.ui import Ui
 
@@ -107,7 +107,7 @@ class UIAutomationCore:
 
         # Initialize logger (singleton)
         if UIAutomationCore._logger_instance is None:
-            UIAutomationCore._logger_instance = Logger.get(app_name)
+            UIAutomationCore._logger_instance = get_logger(app_name)
 
         self._logger = UIAutomationCore._logger_instance
 

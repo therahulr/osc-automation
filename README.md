@@ -1,227 +1,488 @@
-# OSC Automation Framework
+# Automation Framework
 
-Production-grade Playwright automation framework for OSC (Online Sales Center) with environment-aware configuration and safety controls.
+> Production-grade automation framework built with Playwright for creating maintainable, scalable automation workflows.
 
-## 🏗️ Project Structure
+## Overview
 
-```
-automation/
-├── core/                    # Framework utilities
-│   ├── browser.py          # Browser lifecycle management
-│   ├── config.py           # Global settings
-│   ├── logger.py           # Logging with file + console
-│   ├── ui.py               # High-level UI interaction API
-│   ├── utils.py            # Common helpers
-│   └── types.py            # Type definitions
-│
-├── config/osc/             # OSC-specific configuration
-│   └── config.py           # Environment-aware settings
-│
-├── locators/osc/           # Element selectors
-│   └── osc_locators.py     # Organized by page classes
-│
-├── pages/osc/              # Page objects
-│   ├── base_page.py        # Base page with common functionality
-│   ├── login_page.py       # Login workflow
-│   └── dashboard_page.py   # Dashboard operations
-│
-├── scripts/osc/            # Automation scripts
-│   ├── check_environment.py    # Environment validation
-│   ├── verify_dashboard.py     # Login + dashboard verification
-│   └── main.py                 # Complete automation workflow
-│
-├── data/osc/               # Test data and configurations
-├── logs/                   # Application logs
-├── traces/                 # Screenshots and artifacts
-└── requirements.txt        # Python dependencies
-```
+This framework provides a complete automation solution with zero boilerplate code, professional logging, performance tracking, and reusable components. Built for both simplicity and power.
 
-## 🚀 Quick Start
+### Key Features
 
-### 1. Setup Environment
+- **UIAutomationCore** - One-line initialization for browser, logger, and performance tracking
+- **Professional Logging** - Color-coded terminal output with structured file logging
+- **Performance Tracking** - Automatic metrics collection and reporting to SQLite database
+- **Reusable Components** - Build complex workflows from simple, tested building blocks
+- **Highly Configurable** - 17+ environment-based configuration options
+- **Production Ready** - Enterprise-grade error handling, cleanup, and resource management
+
+## Quick Start
+
+### Installation
+
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/therahulr/osc-automation.git
 cd osc-automation
 
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-### 2. Configure Settings
-```bash
-# Copy environment template
-cp .env.example .env
+### Your First Automation
 
-# Edit .env file with your configuration
-# Key settings:
-# - OSC_ENV=prod (for development) or qa (for production)
-# - HEADLESS=false (to see browser during development)
+```python
+from core import UIAutomationCore, log_success
+
+# Everything is automatic - no boilerplate!
+with UIAutomationCore(app_name="my_app") as core:
+    core.page.goto("https://example.com")
+    log_success("Automation complete!")
+
+# Performance report automatically generated!
 ```
 
-### 3. Validate Environment
-```bash
-# Check configuration and credentials
-python scripts/osc/check_environment.py
+### Example: Google Search
+
+```python
+from core import UIAutomationCore, log_step, log_success
+
+with UIAutomationCore(app_name="google_search", headless=False) as core:
+    page = core.page
+    logger = core.logger
+
+    log_step("Navigating to Google")
+    page.goto("https://www.google.com")
+
+    log_step("Performing search")
+    page.fill("textarea[name='q']", "Playwright automation")
+    page.press("textarea[name='q']", "Enter")
+
+    results = page.locator("#search .g").count()
+    log_success(f"Found {results} search results")
+
+    core.take_screenshot("search_results")
 ```
 
-### 4. Run Automation
-```bash
-# Basic dashboard verification
-python scripts/osc/verify_dashboard.py
+## Architecture
 
-# Run with visible browser (for debugging)
-HEADLESS=false python scripts/osc/verify_dashboard.py
+```
+osc-automation/
+├── core/                       # Framework core (app-agnostic)
+│   ├── automation_core.py     # UIAutomationCore - main entry point
+│   ├── logging_system.py      # Professional logging with colors
+│   ├── browser.py             # Browser lifecycle management
+│   ├── components.py          # Reusable UI components
+│   ├── performance.py         # Performance tracking
+│   ├── performance_reporter.py # Report generation
+│   ├── config.py              # Configuration system
+│   └── ui.py                  # UI helper utilities
+│
+├── pages/                      # Page Object Model
+│   ├── osc/                   # OSC-specific pages
+│   │   ├── login_page.py      # Login page object
+│   │   ├── navigation_steps.py # Navigation workflows
+│   │   └── new_application_page.py
+│   └── base_page.py           # Base page class
+│
+├── scripts/                    # Automation workflows
+│   └── osc/
+│       └── create_credit_card_merchant.py
+│
+├── examples/                   # Example workflows
+│   ├── simple_workflow_example.py
+│   ├── component_based_workflow.py
+│   └── osc_workflow_example.py
+│
+├── data/                       # Test data
+│   ├── osc/osc_data.py
+│   └── performance.db         # Performance metrics database
+│
+├── config/                     # Configuration files
+│   └── osc/config.py
+│
+├── locators/                   # UI element locators
+│   └── osc_locators.py
+│
+└── logs/                       # Auto-generated logs
 ```
 
-## 🛡️ Environment Safety
+## Core Concepts
 
-### PROD Environment (Development Only)
-- **Credentials**: `contractordemo / QAContractor@123`
-- **Purpose**: Automation development and testing
-- **Safety**: **READ-ONLY** - No data submission allowed
-- **Config**: `OSC_ENV=prod` in `.env` file
+### 1. UIAutomationCore
 
-### QA Environment (Production Use)
-- **Credentials**: `ContractorQA / QAContractor!123`  
-- **Purpose**: Actual business operations
-- **Safety**: Full operations allowed
-- **Config**: `OSC_ENV=qa` in `.env` file
+The heart of the framework - manages everything automatically.
 
-⚠️ **Important**: Always run `python scripts/osc/check_environment.py` to verify you're in the correct environment before automation.
+```python
+from core import UIAutomationCore
 
-## 🔄 Development Workflow
+with UIAutomationCore(
+    app_name="osc",
+    script_name="my_workflow",
+    headless=False,                    # Visible browser
+    enable_performance_tracking=True,  # Track metrics
+    viewport={"width": 1920, "height": 1080}
+) as core:
+    # Everything ready to use:
+    page = core.page        # Browser launched
+    logger = core.logger    # Logger configured
+    ui = core.ui           # UI helpers available
 
-### Development Machine Workflow
-```bash
-# 1. Ensure PROD environment (safe for development)
-echo "OSC_ENV=prod" >> .env
-
-# 2. Validate environment
-python scripts/osc/check_environment.py
-
-# 3. Develop and test (READ-ONLY operations)
-HEADLESS=false python scripts/osc/verify_dashboard.py
-
-# 4. Commit and push changes
-git add .
-git commit -m "feat: add new automation feature"
-git push origin main
+    # Your automation code
 ```
 
-### Production Machine Workflow
-```bash
-# 1. Pull latest changes
-git pull origin main
+**Auto-managed resources:**
+- ✅ Browser initialization and cleanup
+- ✅ Logger setup (colored console + file)
+- ✅ Performance tracking session
+- ✅ Screenshot helpers
+- ✅ Configuration loading
 
-# 2. Switch to QA environment
-echo "OSC_ENV=qa" >> .env
+### 2. Professional Logging
 
-# 3. Validate environment
-python scripts/osc/check_environment.py
+Beautiful, informative console output + structured file logging.
 
-# 4. Run automation with full capabilities
-python scripts/osc/verify_dashboard.py
+```python
+from core import log_step, log_success, log_metric, log_section
+
+log_section("User Login Flow")
+log_step("Navigating to login page")
+log_metric("Page Load Time", 1.23, "seconds")
+log_success("Login successful")
 ```
 
-## 🧪 Available Scripts
+**Output:**
+```
+═══════════════════════════════════════════════════════════
+USER LOGIN FLOW
+═══════════════════════════════════════════════════════════
 
-| Script | Purpose | Environment |
-|--------|---------|-------------|
-| `scripts/osc/check_environment.py` | Validate configuration and show safety status | Any |
-| `scripts/osc/verify_dashboard.py` | Complete login + dashboard verification | Any |
-| `scripts/osc/main.py` | Main automation workflow | Any |
+➜ Navigating to login page
+📊 Page Load Time: 1.23 seconds
+✓ Login successful
+```
 
-## 🔧 Configuration Reference
+### 3. Reusable Components
+
+Build modular workflows from simple components.
+
+```python
+from core import BaseComponent
+
+class LoginForm(BaseComponent):
+    """Reusable login component."""
+
+    def login(self, username: str, password: str):
+        self.input("#username", username)
+        self.input("#password", password)
+        self.click("#login-button")
+        self.wait_for_navigation()
+
+# Use anywhere
+with UIAutomationCore(app_name="app") as core:
+    login = LoginForm(core.page)
+    login.login("user@example.com", "password")
+```
+
+**Built-in components:**
+- `BaseComponent` - General purpose
+- `FormComponent` - Form handling
+- `TableComponent` - Table operations
+- `ModalComponent` - Modal/dialog interactions
+
+### 4. Automatic Performance Tracking
+
+Every action is tracked automatically to SQLite database.
+
+```python
+with UIAutomationCore(app_name="app", enable_performance_tracking=True) as core:
+    # All actions automatically tracked:
+    core.page.goto("https://example.com")  # ✓ Tracked
+    core.page.fill("#input", "value")       # ✓ Tracked
+    core.page.click("#button")              # ✓ Tracked
+
+# Automatic report at end:
+# ═══════════════════════════════════════
+# AUTOMATION RUN SUMMARY
+# ═══════════════════════════════════════
+# Total Duration:   5.23s
+# Total Steps:      12
+# Success Rate:     100%
+```
+
+## Configuration
+
+All settings are environment-based and override-able.
 
 ### Environment Variables (.env)
+
 ```bash
-# Browser settings
+# Browser Settings
 HEADLESS=false
 INCOGNITO=true
-SLOW_MO_MS=100
+SLOW_MO_MS=0
+BROWSER_TYPE=chromium
+
+# Timeouts
 DEFAULT_TIMEOUT_MS=30000
+NAV_TIMEOUT_MS=60000
+ACTION_TIMEOUT_MS=10000
 
-# Environment configuration
-OSC_ENV=prod                    # 'prod' or 'qa'
+# Viewport
+VIEWPORT_WIDTH=1920
+VIEWPORT_HEIGHT=1080
 
-# OSC application settings
-OSC_BASE_URL=https://uno.eftsecure.net/SalesCenter
-OSC_LOGIN_PATH=/frmHome.aspx
+# Performance
+PERFORMANCE_TRACKING=true
+TRACE_ENABLED=false
+VIDEO_RECORDING=false
 
-# PROD credentials (Development - READ ONLY)
-OSC_USER=contractordemo
-OSC_PASS=QAContractor@123
+# Logging
+LOG_LEVEL=INFO
+COLORED_OUTPUT=true
 
-# QA credentials (Production - Full Operations)
-OSC_QA_USER=ContractorQA
-OSC_QA_PASS=QAContractor!123
+# Environment
+ENV=dev
 ```
 
-### Command Line Options
+### Programmatic Override
+
+```python
+from core import settings
+
+settings.override(
+    headless=True,
+    slow_mo_ms=500,
+    viewport_width=1280
+)
+```
+
+## Working with OSC
+
+### OSC Automation Example
+
+```python
+from core import UIAutomationCore, log_step, log_success
+
+from pages.osc.login_page import LoginPage
+from pages.osc.navigation_steps import NavigationSteps
+from pages.osc.new_application_page import NewApplicationPage
+
+with UIAutomationCore(
+    app_name="osc",
+    script_name="create_merchant",
+    headless=False
+) as core:
+    page = core.page
+    logger = core.logger
+
+    log_step("Step 1: Logging into OSC")
+    login = LoginPage(page)
+    login.complete_login(username, password)
+
+    log_step("Step 2: Navigating to application")
+    navigation = NavigationSteps(page)
+    app_page = navigation.navigate_to_new_application_page()
+
+    log_step("Step 3: Filling application")
+    new_app = NewApplicationPage(app_page)
+    new_app.fill_application_information()
+
+    log_success("Application created successfully")
+```
+
+### Running OSC Scripts
+
 ```bash
 # Run with visible browser
-HEADLESS=false python scripts/osc/verify_dashboard.py
+python scripts/osc/create_credit_card_merchant.py
 
-# Enable debug logging
-ENV=dev python scripts/osc/verify_dashboard.py
-
-# Combine options
-HEADLESS=false ENV=dev python scripts/osc/verify_dashboard.py
+# Or with environment overrides
+HEADLESS=false ENV=dev python scripts/osc/create_credit_card_merchant.py
 ```
 
-## 🏗️ Extending the Framework
+## Examples
 
-### Adding New Pages
-1. Create page object in `pages/osc/new_page.py`
-2. Extend `OSCBasePage` for common functionality
-3. Add locators to `locators/osc/osc_locators.py`
-4. Create automation scripts in `scripts/osc/`
+Check the `/examples` directory for complete working examples:
 
-### Adding New Applications
-1. Create `config/new_app/`, `pages/new_app/`, `locators/new_app/`
-2. Follow the same pattern as OSC implementation
-3. Import only from `core/` - no cross-app dependencies
+- `simple_workflow_example.py` - Basic usage patterns
+- `component_based_workflow.py` - Building with components
+- `osc_workflow_example.py` - Real-world OSC automation
 
-## 🛠️ Development Commands
+## Performance Reports
+
+After each run, get detailed insights:
+
+```
+═══════════════════════════════════════════════════════════
+AUTOMATION RUN SUMMARY
+═══════════════════════════════════════════════════════════
+
+Script Name:      create_merchant
+Status:           SUCCESS
+Environment:      development
+Browser:          chromium
+
+Started:          2024-01-15 10:30:00
+Duration:         5:23.45
+
+Total Steps:      15
+Failed Steps:     0
+Success Rate:     100%
+
+═══════════════════════════════════════════════════════════
+STEP BREAKDOWN
+═══════════════════════════════════════════════════════════
+
+✓ [1] Login Process
+    Type: action | Duration: 2.34s
+
+✓ [2] Navigate to Application
+    Type: navigation | Duration: 1.45s
+
+✓ [3] Fill Application Form
+    Type: action | Duration: 3.67s
+```
+
+## Development Workflow
+
+### Creating a New Workflow
+
+1. **Define your workflow:**
+
+```python
+from core import UIAutomationCore, log_step
+
+with UIAutomationCore(app_name="my_app") as core:
+    log_step("My automation step")
+    # Your code here
+```
+
+2. **Create reusable components** (optional):
+
+```python
+from core import BaseComponent
+
+class MyComponent(BaseComponent):
+    def my_action(self):
+        self.click("#button")
+```
+
+3. **Run and iterate:**
 
 ```bash
-# Environment validation
-python scripts/osc/check_environment.py
-
-# Format code
-black .
-isort .
-
-# Type checking
-mypy core/ config/ pages/ scripts/
-
-# Linting
-flake8 core/ config/ pages/ scripts/
+python scripts/my_workflow.py
 ```
 
-## 📚 Key Features
+### Best Practices
 
-- **Environment Safety**: Automatic credential management with read-only development mode
-- **Production Ready**: Comprehensive logging, error handling, and screenshot capture
-- **Modular Design**: Clean separation of concerns with reusable components
-- **Type Safety**: Full type hints and mypy compatibility
-- **Browser Management**: Automated browser lifecycle with context isolation
-- **Visual Debugging**: Configurable headless/visible modes for development
+1. **Use components** - Encapsulate reusable logic
+2. **Log steps** - Use `log_step()`, `log_success()` for visibility
+3. **Enable tracking** - Review performance reports to optimize
+4. **Parameterize** - Use configuration for flexibility
+5. **Take screenshots** - Use `core.take_screenshot()` at key points
 
-## 🤝 Contributing
+## API Reference
 
-1. Use PROD environment for development (read-only operations)
-2. Test thoroughly before committing
-3. Follow existing code patterns and type hints
-4. Validate environment before running scripts
-5. Keep development and production environments separate
+### UIAutomationCore
+
+```python
+core = UIAutomationCore(
+    app_name="my_app",                 # Required: app name for logging
+    script_name="my_script",           # Optional: script identifier
+    headless=False,                    # Optional: browser visibility
+    enable_performance_tracking=True,  # Optional: track metrics
+    enable_tracing=False,              # Optional: Playwright traces
+    viewport={"width": 1920, "height": 1080},  # Optional: viewport size
+    metadata={"key": "value"}          # Optional: custom metadata
+)
+
+# Properties
+core.page       # Playwright Page (auto-initialized)
+core.logger     # Logger instance
+core.ui         # UI helper utilities
+core.browser    # BrowserManager instance
+core.config     # Global settings
+
+# Methods
+core.take_screenshot(name)              # Take screenshot
+core.get_performance_report(format)     # Get performance report
+```
+
+### Logging Functions
+
+```python
+from core import log_step, log_success, log_metric, log_section, log_panel, log_table
+
+log_step("Description")                 # Step indicator
+log_success("Message")                  # Success message
+log_metric("Name", value, "unit")       # Metric display
+log_section("Title")                    # Section header
+log_panel("Content", "Title")           # Panel display
+log_table("Title", columns, rows)       # Table display
+```
+
+### BaseComponent Methods
+
+```python
+component = BaseComponent(page, logger, root_selector)
+
+# Navigation
+component.goto(url, wait_until)
+
+# Interactions
+component.click(selector, timeout_ms, name)
+component.input(selector, text, clear, timeout_ms)
+component.select(selector, value, timeout_ms)
+component.check(selector, timeout_ms)
+component.hover(selector, timeout_ms)
+
+# Queries
+component.get_text(selector, timeout_ms)
+component.get_value(selector, timeout_ms)
+component.is_visible(selector, timeout_ms)
+component.is_enabled(selector, timeout_ms)
+
+# Wait operations
+component.wait_visible(selector, timeout_ms)
+component.wait_hidden(selector, timeout_ms)
+
+# Helpers
+component.screenshot(name, full_page)
+component.fill_form(fields_dict)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue:** "Failed to generate performance report: no such column: name"
+**Solution:** This is fixed in the latest version. Make sure you pulled the latest changes.
+
+**Issue:** Browser doesn't launch
+**Solution:** Run `playwright install chromium`
+
+**Issue:** Import errors
+**Solution:** Make sure you activated the virtual environment: `source venv/bin/activate`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is proprietary software for internal use.
 
 ---
 
-**Built with Playwright • Python • Type Safety • Production Grade**
+**Built with** Playwright • Python • Rich • SQLite
+
+For detailed architecture documentation, see the examples in `/examples` directory.

@@ -1,32 +1,45 @@
-"""Enhanced colored logger with rich terminal output.
+"""
+Automation Framework Logging System
 
-Provides beautiful, colored logging with:
-- Color-coded log levels
-- Structured formatting
-- Progress tracking
-- Status indicators
-- Rich text support
+Provides a comprehensive logging solution with:
+- Singleton pattern for consistent logging across the framework
+- Dual output: console (colored) and file (structured)
+- Rich terminal formatting for enhanced readability
+- Environment-aware log levels
+- Automatic log file rotation
+- Thread-safe operations
+
+Usage:
+    from core.logging_system import get_logger, log_success, log_step
+
+    logger = get_logger("my_app")
+    logger.info("Starting automation")
+
+    # Rich formatted output
+    log_step("Navigating to login page")
+    log_success("Login completed successfully")
+    log_metric("Response Time", 1.23, "seconds")
 """
 
 import logging
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import Optional
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any, List, Optional
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.theme import Theme
 from rich.panel import Panel
-from rich.text import Text
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
+from rich.theme import Theme
 
 from core.utils import ensure_dir, get_env
 
 
-# Custom theme for beautiful output
-CUSTOM_THEME = Theme({
+# Custom theme for consistent coloring
+AUTOMATION_THEME = Theme({
     "info": "cyan",
     "warning": "yellow",
     "error": "bold red",
@@ -35,44 +48,57 @@ CUSTOM_THEME = Theme({
     "debug": "dim cyan",
     "step": "bold magenta",
     "metric": "bold blue",
+    "section": "bold cyan",
 })
 
 
-class ColoredLogger:
-    """Enhanced logger with rich colored terminal output."""
+class AutomationLogger:
+    """
+    Singleton logger for automation framework.
+
+    Provides:
+    - Structured logging to files
+    - Rich formatted console output
+    - Automatic log rotation
+    - Environment-aware configuration
+    """
 
     _instance: Optional[logging.Logger] = None
     _console: Optional[Console] = None
     _log_dir: Optional[Path] = None
+    _initialized: bool = False
 
     @classmethod
-    def get(cls, app_name: str = "automation") -> logging.Logger:
-        """Get or create singleton colored logger instance.
+    def get_logger(cls, app_name: str = "automation") -> logging.Logger:
+        """
+        Get or create singleton logger instance.
 
         Args:
-            app_name: Name of the application for log file path
+            app_name: Application name for log file organization
 
         Returns:
-            Configured logging.Logger instance with rich output
+            Configured logging.Logger instance
         """
         if cls._instance is None:
             cls._instance = cls._create_logger(app_name)
-            cls._console = Console(theme=CUSTOM_THEME)
+            cls._console = Console(theme=AUTOMATION_THEME)
+            cls._initialized = True
         return cls._instance
 
     @classmethod
     def get_console(cls) -> Console:
-        """Get the rich console instance for advanced formatting."""
+        """Get the rich console instance for custom formatting."""
         if cls._console is None:
-            cls._console = Console(theme=CUSTOM_THEME)
+            cls._console = Console(theme=AUTOMATION_THEME)
         return cls._console
 
     @classmethod
     def _create_logger(cls, app_name: str) -> logging.Logger:
-        """Create and configure logger with rich console handler.
+        """
+        Create and configure logger with console and file handlers.
 
         Args:
-            app_name: Application name for organizing log files
+            app_name: Application name for log organization
 
         Returns:
             Configured logger instance
@@ -81,16 +107,16 @@ class ColoredLogger:
         logger.setLevel(logging.DEBUG)
         logger.propagate = False
 
-        # Clear existing handlers
+        # Clear any existing handlers
         logger.handlers.clear()
 
         # Determine log level from environment
         env = get_env("ENV", "prod").lower()
         log_level = logging.DEBUG if env == "dev" else logging.INFO
 
-        # Rich console handler with beautiful formatting
+        # Rich console handler for beautiful terminal output
         console_handler = RichHandler(
-            console=Console(theme=CUSTOM_THEME),
+            console=Console(theme=AUTOMATION_THEME),
             rich_tracebacks=True,
             tracebacks_show_locals=True,
             show_time=True,
@@ -102,7 +128,7 @@ class ColoredLogger:
         console_handler.setLevel(log_level)
         logger.addHandler(console_handler)
 
-        # File handler with structured formatting
+        # File handler with structured formatting and rotation
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%I_%M_%p")
@@ -119,7 +145,7 @@ class ColoredLogger:
         )
         file_handler.setLevel(log_level)
 
-        # Structured formatter for file (no colors)
+        # Structured formatter for file (no colors, plain text)
         file_formatter = logging.Formatter(
             fmt="%(asctime)s | %(levelname)-8s | %(name)s:%(module)s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
@@ -128,9 +154,9 @@ class ColoredLogger:
         logger.addHandler(file_handler)
 
         logger.info(
-            f"[bold cyan]Colored Logger initialized[/] | App: [yellow]{app_name}[/] | "
+            f"[bold cyan]Logger initialized[/] | App: [yellow]{app_name}[/] | "
             f"Level: [green]{logging.getLevelName(log_level)}[/] | "
-            f"Log file: [blue]{log_file}[/]",
+            f"File: [blue]{log_file}[/]",
             extra={"markup": True}
         )
 
@@ -138,30 +164,30 @@ class ColoredLogger:
 
     @classmethod
     def get_log_dir(cls) -> Optional[Path]:
-        """Get the current log directory."""
+        """Get the current log directory path."""
         return cls._log_dir
 
     @classmethod
     def success(cls, message: str):
-        """Log a success message with green color."""
+        """Log a success message with green styling."""
         console = cls.get_console()
         console.print(f"✓ {message}", style="success")
 
     @classmethod
     def step(cls, message: str):
-        """Log a step message with magenta color."""
+        """Log a step message with magenta styling."""
         console = cls.get_console()
         console.print(f"➜ {message}", style="step")
 
     @classmethod
-    def metric(cls, name: str, value: any, unit: str = ""):
-        """Log a metric with blue color."""
+    def metric(cls, name: str, value: Any, unit: str = ""):
+        """Log a metric with blue styling."""
         console = cls.get_console()
         console.print(f"📊 {name}: [bold]{value}[/] {unit}", style="metric")
 
     @classmethod
     def section(cls, title: str):
-        """Print a section header."""
+        """Print a section header with consistent styling."""
         console = cls.get_console()
         console.print(f"\n[bold cyan]{'='*80}[/]")
         console.print(f"[bold cyan]{title.upper()}[/]")
@@ -174,13 +200,14 @@ class ColoredLogger:
         console.print(Panel(content, title=title, style=style, border_style=style))
 
     @classmethod
-    def table(cls, title: str, columns: list, rows: list):
-        """Display data in a rich table.
+    def table(cls, title: str, columns: List[str], rows: List[List[Any]]):
+        """
+        Display data in a formatted table.
 
         Args:
             title: Table title
             columns: List of column names
-            rows: List of row data (list of lists)
+            rows: List of row data (each row is a list of values)
         """
         console = cls.get_console()
         table = Table(title=title, show_header=True, header_style="bold magenta")
@@ -195,10 +222,11 @@ class ColoredLogger:
 
     @classmethod
     def progress_bar(cls, description: str = "Processing..."):
-        """Create a progress bar context manager.
+        """
+        Create a progress bar context manager.
 
         Usage:
-            with ColoredLogger.progress_bar("Loading...") as progress:
+            with AutomationLogger.progress_bar("Loading...") as progress:
                 task = progress.add_task("[cyan]Loading...", total=100)
                 for i in range(100):
                     progress.update(task, advance=1)
@@ -212,32 +240,49 @@ class ColoredLogger:
         )
 
 
-# Convenience functions
+# Convenience functions for common logging patterns
+def get_logger(app_name: str = "automation") -> logging.Logger:
+    """
+    Get the singleton automation logger.
+
+    Args:
+        app_name: Application name for log organization
+
+    Returns:
+        Configured logger instance
+    """
+    return AutomationLogger.get_logger(app_name)
+
+
 def log_success(message: str):
-    """Log a success message."""
-    ColoredLogger.success(message)
+    """Log a success message with green checkmark."""
+    AutomationLogger.success(message)
 
 
 def log_step(message: str):
-    """Log a step message."""
-    ColoredLogger.step(message)
+    """Log a step message with arrow indicator."""
+    AutomationLogger.step(message)
 
 
-def log_metric(name: str, value: any, unit: str = ""):
-    """Log a metric."""
-    ColoredLogger.metric(name, value, unit)
+def log_metric(name: str, value: Any, unit: str = ""):
+    """Log a metric with formatted output."""
+    AutomationLogger.metric(name, value, unit)
 
 
 def log_section(title: str):
     """Log a section header."""
-    ColoredLogger.section(title)
+    AutomationLogger.section(title)
 
 
 def log_panel(content: str, title: str = "", style: str = "cyan"):
     """Log content in a panel."""
-    ColoredLogger.panel(content, title, style)
+    AutomationLogger.panel(content, title, style)
 
 
-def log_table(title: str, columns: list, rows: list):
-    """Log a table."""
-    ColoredLogger.table(title, columns, rows)
+def log_table(title: str, columns: List[str], rows: List[List[Any]]):
+    """Log a formatted table."""
+    AutomationLogger.table(title, columns, rows)
+
+
+# Legacy compatibility - alias Logger class to AutomationLogger
+Logger = AutomationLogger
