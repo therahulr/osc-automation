@@ -8,7 +8,7 @@ but fall back to original behavior for backward compatibility.
 import time
 import functools
 from typing import Callable, Any
-from utils.logger import get_logger
+from core.logger import get_logger
 
 logger = get_logger(__name__)
 

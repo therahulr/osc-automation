@@ -27,6 +27,7 @@ from core.ui import Ui
 from core.logger import (
     AutomationLogger,
     get_logger,
+    setup_logging,
     log_success,
     log_step,
     log_metric,
@@ -66,6 +67,7 @@ __all__ = [
     # Logging
     "AutomationLogger",
     "get_logger",
+    "setup_logging",
     "log_success",
     "log_step",
     "log_metric",

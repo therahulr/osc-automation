@@ -35,7 +35,7 @@ from utils.custom_data import (
     create_custom_data_skeleton,
     create_custom_data_example
 )
-from utils.logger import setup_logging
+from core.logger import setup_logging
 from data.osc.osc_data import get_all_data
 
 logger = logging.getLogger(__name__)

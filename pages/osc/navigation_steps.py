@@ -7,7 +7,7 @@ from pages.osc.base_page import BasePage
 from data.data_importer import DataImporter
 from utils.decorators import timeit, log_step
 from utils.locator_utils import build_table_row_checkbox_locator
-from utils.logger import get_logger
+from core.logger import get_logger
 from locators.osc_locators import NavigationLocators
 
 # Use logger attached to BasePage instances (self.logger). Module-level

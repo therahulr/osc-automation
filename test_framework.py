@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from utils.logger import setup_logging, get_logger
+from core.logger import setup_logging, get_logger
 from utils.config import config
 from data.osc.osc_data import OSC_DATA
 from utils.custom_data import CustomDataManager

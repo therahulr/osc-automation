@@ -286,3 +286,21 @@ def log_table(title: str, columns: List[str], rows: List[List[Any]]):
 
 # Legacy compatibility - alias Logger class to AutomationLogger
 Logger = AutomationLogger
+
+
+def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None, console_output: bool = True):
+    """
+    Backward compatibility function for setup_logging.
+
+    Note: The new AutomationLogger auto-configures itself via get_logger().
+    This function is provided for backward compatibility with legacy code.
+
+    Args:
+        level: Logging level (ignored - uses ENV variable)
+        log_file: Log file path (ignored - auto-configured)
+        console_output: Console output flag (ignored - always enabled)
+    """
+    # Auto-initialize logger if not already done
+    # The logger is auto-configured via get_logger() so this is just a no-op
+    # for backward compatibility
+    pass
