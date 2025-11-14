@@ -24,7 +24,7 @@ from core.browser import BrowserManager
 from core.ui import Ui
 
 # Logging
-from core.logging_system import (
+from core.logger import (
     AutomationLogger,
     get_logger,
     log_success,

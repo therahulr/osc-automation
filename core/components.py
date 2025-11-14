@@ -23,7 +23,7 @@ from datetime import datetime
 
 from playwright.sync_api import Page, Locator, ElementHandle
 
-from core.logging_system import get_logger
+from core.logger import get_logger
 from core.ui import Ui
 
 

@@ -5,7 +5,7 @@ from typing import Literal, Optional, Tuple, Union
 from playwright.sync_api import Page
 
 from core.config import settings
-from core.logger import Logger
+from core.logger import get_logger
 from core.types import Selector
 
 
@@ -23,7 +23,7 @@ class Ui:
             page: Playwright Page instance to wrap
         """
         self._page = page
-        self._logger = Logger.get()
+        self._logger = get_logger()
 
     def _resolve_locator(self, locator: Union[str, Tuple[str, str]]) -> str:
         """Resolve locator to Playwright selector string.

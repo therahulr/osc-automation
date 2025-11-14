@@ -9,7 +9,7 @@ from datetime import datetime
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 from core.config import settings
-from core.logging_system import get_logger
+from core.logger import get_logger
 from core.utils import ensure_dir
 
 

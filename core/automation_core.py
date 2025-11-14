@@ -37,11 +37,12 @@ Usage:
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
+import time
 
 from playwright.sync_api import Page, BrowserContext
 
 from core.browser import BrowserManager
-from core.logging_system import get_logger
+from core.logger import get_logger
 from core.config import settings
 from core.ui import Ui
 
@@ -119,6 +120,10 @@ class UIAutomationCore:
         # Performance session
         self._performance_session = None
         self._session_context_manager = None
+
+        # Timer for tracking execution duration
+        self._start_time: Optional[float] = None
+        self._end_time: Optional[float] = None
 
         self._logger.info(f"UIAutomationCore initialized | app={app_name}, script={self._script_name}")
 
@@ -262,6 +267,18 @@ class UIAutomationCore:
 
     def __enter__(self):
         """Context manager entry - automatically start performance tracking."""
+        # Record start time
+        self._start_time = time.time()
+        start_datetime = datetime.fromtimestamp(self._start_time)
+
+        # Print start banner with colored output
+        print("\n" + "="*80)
+        print(f"🚀 AUTOMATION STARTED")
+        print("="*80)
+        print(f"Script:     {self._script_name}")
+        print(f"Started At: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print("="*80 + "\n")
+
         if self._enable_performance:
             self.start_performance_tracking()
         return self
@@ -269,6 +286,26 @@ class UIAutomationCore:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - cleanup and generate reports."""
         try:
+            # Record end time
+            self._end_time = time.time()
+            end_datetime = datetime.fromtimestamp(self._end_time)
+
+            # Calculate duration
+            if self._start_time:
+                duration_seconds = self._end_time - self._start_time
+                duration_minutes = duration_seconds / 60
+                duration_hours = duration_minutes / 60
+
+                # Format duration nicely
+                if duration_hours >= 1:
+                    duration_str = f"{int(duration_hours)}h {int(duration_minutes % 60)}m {duration_seconds % 60:.2f}s"
+                elif duration_minutes >= 1:
+                    duration_str = f"{int(duration_minutes)}m {duration_seconds % 60:.2f}s"
+                else:
+                    duration_str = f"{duration_seconds:.2f}s"
+            else:
+                duration_str = "N/A"
+
             # Stop performance tracking
             if self._enable_performance:
                 self.stop_performance_tracking()
@@ -289,6 +326,18 @@ class UIAutomationCore:
                 self._context = None
 
             self._logger.info("UIAutomationCore context closed")
+
+            # Print end banner with timing info
+            status = "✓ COMPLETED SUCCESSFULLY" if exc_type is None else "✗ FAILED"
+            status_color = "green" if exc_type is None else "red"
+
+            print("\n" + "="*80)
+            print(f"🏁 AUTOMATION {status}")
+            print("="*80)
+            print(f"Script:     {self._script_name}")
+            print(f"Ended At:   {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Duration:   {duration_str}")
+            print("="*80 + "\n")
 
         except Exception as e:
             self._logger.error(f"Error during cleanup: {e}")

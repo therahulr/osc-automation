@@ -4,7 +4,7 @@ Base Page - Minimal automation foundation
 
 from playwright.sync_api import Page
 
-from core.logging_system import get_logger
+from core.logger import get_logger
 
 
 class BasePage:

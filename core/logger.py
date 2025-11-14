@@ -10,7 +10,7 @@ Provides a comprehensive logging solution with:
 - Thread-safe operations
 
 Usage:
-    from core.logging_system import get_logger, log_success, log_step
+    from core.logger import get_logger, log_success, log_step
 
     logger = get_logger("my_app")
     logger.info("Starting automation")
