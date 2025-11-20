@@ -48,7 +48,13 @@ class MFAPageLocators:
 
 
 class DashboardPageLocators:
-    pass
+    """Locators for the OSC Dashboard/Home page"""
+
+    # Main dashboard elements
+    HOME_HEADING = "//h1[contains(text(), 'Home')]"
+    APPLICATION_SUMMARY_HEADING = "//h2[contains(text(), 'Application Summary')] | //span[contains(text(), 'Application Summary')]"
+    LOGOUT_LINK = "//a[contains(text(), 'Logout') or contains(@href, 'Logout')]"
+    DASHBOARD_URL_PATTERN = "/frmHome.aspx"
 
 
 class NewApplicationPageLocators:
