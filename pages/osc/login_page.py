@@ -9,7 +9,7 @@ from playwright.sync_api import Page
 from pages.osc.base_page import BasePage
 from config.osc.config import osc_settings
 from locators.osc_locators import LoginPageLocators
-from utils.decorators import timeit, retry, log_step
+from utils.decorators import retry, log_step
 
 
 class LoginPage(BasePage):
@@ -17,7 +17,6 @@ class LoginPage(BasePage):
     def __init__(self, page: Page):
         super().__init__(page)
     
-    @timeit
     @log_step
     def complete_login(self, username: str, password: str) -> bool:
         """Complete login workflow including MFA bypass"""

@@ -48,7 +48,13 @@ class MFAPageLocators:
 
 
 class DashboardPageLocators:
-    pass
+    """Locators for the OSC Dashboard/Home page"""
+
+    # Main dashboard elements
+    HOME_HEADING = "#ctl00_ContentPlaceHolder2_lblTitle"
+    APPLICATION_SUMMARY_HEADING = "#ctl00_ContentPlaceHolder2_ctrlSummary1_lblTitle"
+    LOGOUT_LINK = "//a[@href='Default.aspx']"
+    DASHBOARD_URL_PATTERN = "/frmHome.aspx"
 
 
 class NewApplicationPageLocators:
