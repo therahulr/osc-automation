@@ -5,7 +5,7 @@ OSC Navigation automation - Simple workflow steps
 from playwright.sync_api import Page
 from pages.osc.base_page import BasePage
 from data.data_importer import DataImporter
-from utils.decorators import timeit, log_step
+from utils.decorators import log_step
 from utils.locator_utils import build_table_row_checkbox_locator
 from core.logger import get_logger
 from locators.osc_locators import NavigationLocators
@@ -21,7 +21,6 @@ class NavigationSteps(BasePage):
         super().__init__(page)
         self.data = DataImporter()
     
-    @timeit
     @log_step
     def navigate_to_new_application_page(self) -> Page:
         """Complete new application navigation workflow
