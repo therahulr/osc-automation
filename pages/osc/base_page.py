@@ -138,6 +138,69 @@ class OSCBasePage:
         except Exception:
             return None
     
+    def fill_masked_input(self, selector: str, value: str, field_name: str = None,
+                          delay_ms: int = 100) -> bool:
+        """
+        Fill a masked input field by typing digits slowly.
+        
+        Used for phone/fax fields with mask pattern like (___) ___-____
+        Extracts digits from value and types them one by one with delay.
+        
+        Args:
+            selector: CSS or XPath selector for the input
+            value: Value containing digits (e.g., '7038529999' or '(703) 852-9999')
+            field_name: Friendly name for logging
+            delay_ms: Delay between keystrokes in milliseconds (default: 100ms)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        field_name = field_name or selector[:40]
+        
+        if not value:
+            self.logger.debug(f"{field_name}: Skipped (empty value)")
+            return True
+        
+        # Extract digits only
+        digits = ''.join(c for c in value if c.isdigit())
+        
+        if not digits:
+            self.logger.warning(f"{field_name}: No digits found in value '{value}'")
+            return False
+        
+        try:
+            self.wait_for_element(selector, timeout=self.SHORT_TIMEOUT)
+            
+            # Click to focus the field
+            self.page.click(selector)
+            time.sleep(0.1)
+            
+            # Clear existing content
+            self.page.locator(selector).clear()
+            time.sleep(0.1)
+            
+            # Type each digit slowly
+            for digit in digits:
+                self.page.keyboard.press(digit)
+                time.sleep(delay_ms / 1000)
+            
+            # Verify by getting the value back
+            actual = self.get_text_value(selector)
+            
+            # Check if digits are present in the result (formatted or not)
+            actual_digits = ''.join(c for c in (actual or '') if c.isdigit())
+            
+            if actual_digits == digits:
+                self.logger.info(f"{field_name}: Filled with '{actual}' (digits: {digits})")
+                return True
+            else:
+                self.logger.warning(f"{field_name}: Digit mismatch. Expected '{digits}', got '{actual_digits}'")
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"{field_name}: Failed to fill masked input - {e}")
+            return False
+    
     # =========================================================================
     # DROPDOWN UTILITIES
     # =========================================================================

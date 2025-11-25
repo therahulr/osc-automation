@@ -1,5 +1,10 @@
 """
-New Application Page - OSC Application Information automation
+New Application Page - OSC Application automation
+
+Sections:
+- Application Information
+- Corporate Information  
+- Location Information
 """
 
 from playwright.sync_api import Page, TimeoutError
@@ -7,14 +12,18 @@ from typing import Dict, Any, Optional
 import time
 
 from pages.osc.base_page import BasePage
-from locators.osc_locators import ApplicationInformationLocators
-from data.osc.osc_data import APPLICATION_INFO
+from locators.osc_locators import (
+    ApplicationInformationLocators,
+    CorporateInformationLocators,
+    LocationInformationLocators,
+)
+from data.osc.osc_data import APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
 
 
 class NewApplicationPage(BasePage):
-    """Page object for handling New Application form - Application Information section"""
+    """Page object for handling New Application form"""
     
     def __init__(self, page: Page):
         super().__init__(page)
@@ -336,3 +345,279 @@ class NewApplicationPage(BasePage):
         )
         
         return options
+
+    # =========================================================================
+    # CORPORATE INFORMATION SECTION
+    # =========================================================================
+    
+    @performance_step("fill_corporate_information_section")
+    @log_step
+    def fill_corporate_information_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
+        """
+        Fill the Corporate Information section.
+        
+        Args:
+            data: Optional dictionary with corporate data. Uses CORPORATE_INFO if not provided.
+            
+        Returns:
+            Dict with success status for each field
+        """
+        data = data or CORPORATE_INFO
+        results = {}
+        loc = CorporateInformationLocators
+        
+        # Scroll to section
+        self.scroll_to_section(loc.CORPORATE_INFORMATION_SECTION)
+        
+        # Legal Business Name
+        results["legal_business_name"] = self.fill_text(
+            loc.LEGAL_BUSINESS_NAME_INPUT,
+            data.get("legal_business_name", ""),
+            "Legal Business Name"
+        )
+        
+        # Address
+        results["address"] = self.fill_text(
+            loc.ADDRESS_LINE_1_INPUT,
+            data.get("address", ""),
+            "Corporate Address"
+        )
+        
+        # City
+        results["city"] = self.fill_text(
+            loc.CITY_INPUT,
+            data.get("city", ""),
+            "Corporate City"
+        )
+        
+        # State dropdown
+        results["state"] = self.select_dropdown_by_text(
+            loc.STATE_DROPDOWN,
+            data.get("state", "California"),
+            "Corporate State"
+        )
+        
+        # Zip Code
+        results["zip_code"] = self.fill_text(
+            loc.ZIP_CODE_INPUT,
+            data.get("zip_code", ""),
+            "Corporate Zip Code"
+        )
+        
+        # Country dropdown
+        results["country"] = self.select_dropdown_by_text(
+            loc.COUNTRY_DROPDOWN,
+            data.get("country", "United States"),
+            "Corporate Country"
+        )
+        
+        # Phone - masked input (digits only, typed slowly)
+        results["phone"] = self.fill_masked_input(
+            loc.PHONE_INPUT,
+            data.get("phone", ""),
+            "Corporate Phone"
+        )
+        
+        # Fax - masked input (digits only, typed slowly)
+        results["fax"] = self.fill_masked_input(
+            loc.FAX_INPUT,
+            data.get("fax", ""),
+            "Corporate Fax"
+        )
+        
+        # Email
+        results["email"] = self.fill_text(
+            loc.EMAIL_INPUT,
+            data.get("email", ""),
+            "Corporate Email"
+        )
+        
+        # Dunns & Bradstreet
+        results["dunns_number"] = self.fill_text(
+            loc.DUNNS_INPUT,
+            data.get("dunns_number", ""),
+            "Dunns & Bradstreet"
+        )
+        
+        # Contact Title
+        results["contact_title"] = self.fill_text(
+            loc.CONTACT_TITLE_INPUT,
+            data.get("contact_title", ""),
+            "Contact Title"
+        )
+        
+        # Contact First Name
+        results["contact_first_name"] = self.fill_text(
+            loc.CONTACT_FIRST_NAME_INPUT,
+            data.get("contact_first_name", ""),
+            "Contact First Name"
+        )
+        
+        # Contact Last Name
+        results["contact_last_name"] = self.fill_text(
+            loc.CONTACT_LAST_NAME_INPUT,
+            data.get("contact_last_name", ""),
+            "Contact Last Name"
+        )
+        
+        # Location Address Radio - Use different address
+        if data.get("use_different_location", True):
+            results["location_address_option"] = self.select_radio(
+                loc.LOCATION_DIFFERENT_ADDRESS_RADIO,
+                "Use Different Address"
+            )
+        else:
+            results["location_address_option"] = self.select_radio(
+                loc.LOCATION_SAME_ADDRESS_RADIO,
+                "Use Same Address"
+            )
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Corporate Information: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # LOCATION INFORMATION SECTION
+    # =========================================================================
+    
+    @performance_step("fill_location_information_section")
+    @log_step
+    def fill_location_information_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
+        """
+        Fill the Location Information section.
+        
+        Args:
+            data: Optional dictionary with location data. Uses LOCATION_INFO if not provided.
+            
+        Returns:
+            Dict with success status for each field
+        """
+        data = data or LOCATION_INFO
+        results = {}
+        loc = LocationInformationLocators
+        
+        # Scroll to section
+        self.scroll_to_section(loc.SECTION_LOCATION_INFORMATION)
+        
+        # DBA (Doing Business As)
+        results["dba"] = self.fill_text(
+            loc.DBA_INPUT,
+            data.get("dba", ""),
+            "DBA Name"
+        )
+        
+        # Address
+        results["address"] = self.fill_text(
+            loc.ADDRESS_INPUT,
+            data.get("address", ""),
+            "Location Address"
+        )
+        
+        # City
+        results["city"] = self.fill_text(
+            loc.CITY_INPUT,
+            data.get("city", ""),
+            "Location City"
+        )
+        
+        # State dropdown
+        results["state"] = self.select_dropdown_by_text(
+            loc.STATE_DROPDOWN,
+            data.get("state", "California"),
+            "Location State"
+        )
+        
+        # Zip Code
+        results["zip_code"] = self.fill_text(
+            loc.ZIP_INPUT,
+            data.get("zip_code", ""),
+            "Location Zip Code"
+        )
+        
+        # Country dropdown
+        results["country"] = self.select_dropdown_by_text(
+            loc.COUNTRY_DROPDOWN,
+            data.get("country", "United States"),
+            "Location Country"
+        )
+        
+        # Phone - masked input
+        results["phone"] = self.fill_masked_input(
+            loc.PHONE_INPUT,
+            data.get("phone", ""),
+            "Location Phone"
+        )
+        
+        # Fax - masked input
+        results["fax"] = self.fill_masked_input(
+            loc.FAX_INPUT,
+            data.get("fax", ""),
+            "Location Fax"
+        )
+        
+        # Customer Service Phone - masked input
+        results["customer_service_phone"] = self.fill_masked_input(
+            loc.CUSTOMER_SERVICE_PHONE_INPUT,
+            data.get("customer_service_phone", ""),
+            "Customer Service Phone"
+        )
+        
+        # Website
+        results["website"] = self.fill_text(
+            loc.WEBSITE_INPUT,
+            data.get("website", ""),
+            "Website"
+        )
+        
+        # Email
+        results["email"] = self.fill_text(
+            loc.EMAIL_INPUT,
+            data.get("email", ""),
+            "Location Email"
+        )
+        
+        # Chargeback Email
+        results["chargeback_email"] = self.fill_text(
+            loc.CHARGEBACK_EMAIL_INPUT,
+            data.get("chargeback_email", ""),
+            "Chargeback Email"
+        )
+        
+        # Business Open Date (masked input mm/dd/yyyy)
+        results["business_open_date"] = self.fill_masked_input(
+            loc.BUSINESS_OPEN_DATE_INPUT,
+            data.get("business_open_date", ""),
+            "Business Open Date"
+        )
+        
+        # Existing Sage MID (optional)
+        existing_mid = data.get("existing_sage_mid", "")
+        if existing_mid:
+            results["existing_sage_mid"] = self.fill_text(
+                loc.EXISTING_MID_INPUT,
+                existing_mid,
+                "Existing Sage MID"
+            )
+        else:
+            results["existing_sage_mid"] = True  # Skip if not provided
+        
+        # General Comments (optional)
+        general_comments = data.get("general_comments", "")
+        if general_comments:
+            results["general_comments"] = self.fill_text(
+                loc.GENERAL_COMMENTS_TEXTAREA,
+                general_comments,
+                "General Comments"
+            )
+        else:
+            results["general_comments"] = True  # Skip if not provided
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Location Information: {success_count}/{total_count} fields successful")
+        
+        return results

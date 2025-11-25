@@ -275,6 +275,10 @@ class CorporateInformationLocators:
     CONTACT_FIRST_NAME_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_txtCorpContactFirstName"
     CONTACT_LAST_NAME_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_txtCorpContactLastName"
 
+    # ---- Dropdowns ----
+    STATE_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_ddlCorpState"
+    COUNTRY_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_ddlCorpCountry"
+    
     STATE_DROPDOWN_OPTIONS = "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_ddlCorpState']/option"
     COUNTRY_DROPDOWN_OPTIONS = "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationCorp1_FormView1_ddlCorpCountry']/option"
 

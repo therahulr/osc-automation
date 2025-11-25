@@ -206,7 +206,7 @@ class BrowserManager:
                     return result
                 except Exception as e:
                     duration = time.time() - start_time
-                    self._track_element_action('click', selector, duration, False, str(e))
+                    self._track_element_action('click', selector, duration, False, error=str(e))
                     raise
             
             def tracked_fill(selector, value, **kwargs):

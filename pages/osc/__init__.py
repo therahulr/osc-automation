@@ -7,7 +7,7 @@ Base Classes:
 Page Objects:
     - LoginPage: Login and MFA handling
     - NavigationSteps: Navigation workflows
-    - NewApplicationPage: Application form automation
+    - NewApplicationPage: Application form automation (includes Corporate & Location)
 
 Wizard Helpers:
     - WizardNavigator: Base class for multi-step wizards

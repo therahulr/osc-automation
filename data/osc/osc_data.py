@@ -12,12 +12,245 @@ Data Categories:
 """
 
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from faker import Faker
 import random
 import string
 
 faker = Faker()
+
+
+# =====================================================
+# DROPDOWN OPTIONS - All available values from DOM
+# =====================================================
+class DropdownOptions:
+    """All available dropdown options across the application"""
+    
+    # Association dropdown options
+    ASSOCIATION_OPTIONS = [
+        "Big Association",
+        "DEMO NET1",
+        "TestWelcomeEmails"
+    ]
+
+    # Lead Source dropdown options
+    LEAD_SOURCE_OPTIONS = [
+        "AdvanceMe",
+        "Merchant Call In",
+        "Referral",
+        "Rocky Gingg",
+        "Yellow Pages"
+    ]
+
+    # Referral Partner dropdown options
+    REFERRAL_PARTNER_OPTIONS = [
+        "None",
+        "Test Troy1"
+    ]
+
+    # Country dropdown options
+    COUNTRY_OPTIONS = [
+        "Canada",
+        "United States"
+    ]
+
+    # State dropdown options (US States + Canadian Provinces)
+    STATE_OPTIONS = [
+        "Please select...",
+        "NA",
+        "Alaska",
+        "Alabama",
+        "Arkansas",
+        "Arizona",
+        "California",
+        "Colorado",
+        "Connecticut",
+        "Dist. of Columbia",
+        "Delaware",
+        "Florida",
+        "Georgia",
+        "Guam",
+        "Hawaii",
+        "Iowa",
+        "Idaho",
+        "Illinois",
+        "Indiana",
+        "Kansas",
+        "Kentucky",
+        "Louisiana",
+        "Massachusetts",
+        "Maryland",
+        "Maine",
+        "Michigan",
+        "Minnesota",
+        "Missouri",
+        "Mississippi",
+        "Montana",
+        "North Carolina",
+        "North Dakota",
+        "Nebraska",
+        "New Hampshire",
+        "New Jersey",
+        "New Mexico",
+        "Nevada",
+        "New York",
+        "Ohio",
+        "Oklahoma",
+        "Oregon",
+        "Pennsylvania",
+        "Puerto Rico",
+        "Rhode Island",
+        "South Carolina",
+        "South Dakota",
+        "Tennessee",
+        "Texas",
+        "Utah",
+        "Virginia",
+        "Virgin Islands",
+        "Vermont",
+        "Washington",
+        "Wisconsin",
+        "West Virginia",
+        "Wyoming",
+        "Alberta",
+        "British Columbia",
+        "Manitoba",
+        "New Brunswick",
+        "Newfoundland and Labrador",
+        "Nova Scotia",
+        "Northwest Territories",
+        "Nunavut",
+        "Ontario",
+        "Prince Edward Island",
+        "Quebec",
+        "Saskatchewan",
+        "Yukon"
+    ]
+    
+    # US States only (for random selection)
+    US_STATES = [
+        "Alaska", "Alabama", "Arkansas", "Arizona", "California", "Colorado",
+        "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Iowa",
+        "Idaho", "Illinois", "Indiana", "Kansas", "Kentucky", "Louisiana",
+        "Massachusetts", "Maryland", "Maine", "Michigan", "Minnesota", "Missouri",
+        "Mississippi", "Montana", "North Carolina", "North Dakota", "Nebraska",
+        "New Hampshire", "New Jersey", "New Mexico", "Nevada", "New York",
+        "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island",
+        "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah",
+        "Virginia", "Vermont", "Washington", "Wisconsin", "West Virginia", "Wyoming"
+    ]
+    
+    # Ownership Type dropdown options
+    OWNERSHIP_TYPE_OPTIONS = [
+        "C Corporation",
+        "Government (Fed,St,Local)",
+        "LLC- C Corp",
+        "LLC- Disregarded Entity",
+        "LLC- Partnership",
+        "LLC- S Corp",
+        "LLC- Sole Proprietor",
+        "Non-Profit",
+        "Non-US Entity",
+        "Partnership",
+        "S Corporation",
+        "Sole Proprietor",
+        "Trust/Estate",
+        "Please select..."
+    ]
+    
+    # Business Type dropdown options
+    BUSINESS_TYPE_OPTIONS = [
+        "Select business type",
+        "Grocery",
+        "GSA",
+        "Hotel/Restaurant",
+        "MOTO",
+        "Retail"
+    ]
+    
+    # Return Policy dropdown options
+    RETURN_POLICY_OPTIONS = [
+        "30 Days Money Back Guarantee",
+        "30 Days Exchange Only",
+        "60 Days Money Back Guarantee",
+        "60 Days Exchange Only",
+        "90 Days Money Back Guarantee",
+        "90 Days Exchange Only",
+        "Other"
+    ]
+
+
+# =====================================================
+# HELPER FUNCTIONS - Phone/Fax (digits only for masked inputs)
+# =====================================================
+def generate_phone_digits() -> str:
+    """Generate a 10-digit phone number (digits only for masked input)"""
+    area_code = random.randint(200, 999)
+    prefix = random.randint(200, 999)
+    line = random.randint(1000, 9999)
+    return f"{area_code}{prefix}{line}"
+
+
+def generate_fax_digits() -> str:
+    """Generate a 10-digit fax number (digits only for masked input)"""
+    return generate_phone_digits()
+
+
+def generate_random_date_past(years_back: int = 10) -> str:
+    """Generate a random date in the past as digits only (mmddyyyy for masked input)"""
+    days_back = random.randint(365, years_back * 365)
+    past_date = datetime.now() - timedelta(days=days_back)
+    # Return digits only for masked input fields (mm/dd/yyyy mask)
+    return past_date.strftime("%m%d%Y")
+
+
+def generate_dunns_number() -> str:
+    """Generate a random 9-digit D&B number"""
+    return ''.join([str(random.randint(0, 9)) for _ in range(9)])
+
+
+# =====================================================
+# CORPORATE INFORMATION DATA
+# =====================================================
+CORPORATE_INFO = {
+    "legal_business_name": faker.company(),
+    "address": faker.street_address(),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    "fax": generate_fax_digits(),
+    "email": faker.company_email(),
+    "dunns_number": generate_dunns_number(),
+    "contact_title": random.choice(["CEO", "President", "Owner", "Manager", "Director"]),
+    "contact_first_name": faker.first_name(),
+    "contact_last_name": faker.last_name(),
+    "use_different_location": True,  # Always use different location address
+}
+
+
+# =====================================================
+# LOCATION INFORMATION DATA
+# =====================================================
+LOCATION_INFO = {
+    "dba": faker.company() + " " + random.choice(["Store", "Shop", "Center", "Outlet"]),
+    "address": faker.street_address(),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    "fax": generate_fax_digits(),
+    "customer_service_phone": generate_phone_digits(),
+    "website": "https://www." + faker.domain_name(),
+    "email": faker.email(),
+    "chargeback_email": "chargeback." + faker.email(),
+    "business_open_date": generate_random_date_past(years_back=15),
+    "existing_sage_mid": "",  # Optional - leave empty for new merchants
+    "general_comments": faker.sentence(nb_words=10),
+}
+
 
 # Sales Representative Configuration
 SALES_REPRESENTATIVE = {
