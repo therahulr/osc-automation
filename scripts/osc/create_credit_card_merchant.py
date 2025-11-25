@@ -98,28 +98,5 @@ def create_credit_card_merchant():
 
 
 if __name__ == "__main__":
-    """
-    COMPARISON:
-
-    OLD VERSION (create_credit_card_merchant.py):
-    - Lines of code: ~87
-    - Manual logger initialization: Yes
-    - Manual browser management: Yes
-    - Manual performance session: Yes
-    - Colored output: No
-    - Automatic cleanup: Partial
-    - Performance report: No
-
-    NEW VERSION (this file):
-    - Lines of code: ~65 (25% reduction)
-    - Manual logger initialization: No
-    - Manual browser management: No
-    - Manual performance session: No
-    - Colored output: Yes
-    - Automatic cleanup: Yes
-    - Performance report: Yes (automatic)
-
-    CONCLUSION: Same functionality, less code, better output, more features!
-    """
-
+   
     create_credit_card_merchant()

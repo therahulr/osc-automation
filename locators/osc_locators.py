@@ -17,6 +17,16 @@ class LoginPageLocators:
     FORGOT_PASSWORD_LINK = "//a[contains(text(), 'Forgot your password?')]"
     LOGIN_URL_PATTERN = "/SalesCenter/"
 
+class MFAPageLocators:
+    FORM = "#form1"
+    HEADING = "//h2[text()='One-time Passcode']"
+    MOBILE_OPTION = "//div[@class='mfa-card-new'][.//img[@alt='SMS']]"
+    EMAIL_OPTION = "//div[@class='mfa-card-new'][.//img[@alt='EMAIL']]"
+    MOBILE_SPAN = "#spanMobile"
+    CANCEL_BUTTON = "#btnCancel"
+    NEXT_BUTTON = "#btnNext"
+    MFA_TYPE_FIELD = "#hdmfaType"
+    MFA_URL_PATTERN = "/SalesCenter/mfa/frmMFAMenuOptionPage.aspx"
 
 class DashboardPageLocators:
     """Locators for the OSC Dashboard/Home page"""
@@ -186,6 +196,7 @@ class Step2ExistingMerchantLocators:
 class NewApplicationPageLocators:
 
     PAGE_TITLE = "//span[@id='ctl00_ContentPlaceHolder1_lblTitle' and contains(text(),'Sales Center - Application')]"
+    APPLICATION_INFO_SECTION = "#ctl00_ContentPlaceHolder1_ctrlApplicationInfo1_lblTitle"
 
     # ============================================
     # APPLICATION FORM - HEADER ACTION MENU
@@ -343,28 +354,6 @@ class LocationInformationLocators:
         "//select[@id='ctl00_ContentPlaceHolder1_ctrlApplicationLocation1_FormView1_ddlDBACountry']"
         "/option[text()='{}']"
     )
-
-
-class MFAPageLocators:
-    FORM = "#form1"
-    HEADING = "//h2[text()='One-time Passcode']"
-    MOBILE_OPTION = "//div[@class='mfa-card-new'][.//img[@alt='SMS']]"
-    EMAIL_OPTION = "//div[@class='mfa-card-new'][.//img[@alt='EMAIL']]"
-    MOBILE_SPAN = "#spanMobile"
-    CANCEL_BUTTON = "#btnCancel"
-    NEXT_BUTTON = "#btnNext"
-    MFA_TYPE_FIELD = "#hdmfaType"
-    MFA_URL_PATTERN = "/SalesCenter/mfa/frmMFAMenuOptionPage.aspx"
-
-
-class DashboardPageLocators:
-    """Locators for the OSC Dashboard/Home page"""
-
-    # Main dashboard elements
-    HOME_HEADING = "#ctl00_ContentPlaceHolder2_lblTitle"
-    APPLICATION_SUMMARY_HEADING = "#ctl00_ContentPlaceHolder2_ctrlSummary1_lblTitle"
-    LOGOUT_LINK = "//a[@href='Default.aspx']"
-    DASHBOARD_URL_PATTERN = "/frmHome.aspx"
 
 class Owner1Locators:
     TITLE_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationOwner1_FormView1_txtOwnerTitle"

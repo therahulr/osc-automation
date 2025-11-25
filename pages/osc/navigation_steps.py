@@ -8,7 +8,12 @@ from data.data_importer import DataImporter
 from utils.decorators import log_step
 from utils.locator_utils import build_table_row_checkbox_locator
 from core.logger import get_logger
-from locators.osc_locators import NavigationLocators
+from locators.osc_locators import (
+    DashboardPageLocators,
+    Step1SalesRepLocators,
+    Step2ExistingMerchantLocators,
+    ApplicationInformationLocators
+)
 
 # Use logger attached to BasePage instances (self.logger). Module-level
 # logger creation is avoided so the page objects can share the core
@@ -30,15 +35,15 @@ class NavigationSteps(BasePage):
         """
         # 1. Click on Applications menu
         self.logger.info("Step 1: Clicking Applications menu")
-        self.page.click(NavigationLocators.APPLICATIONS_MENU)
+        self.page.click(DashboardPageLocators.MENU_APPLICATIONS)
 
         # 2. Click on New Application
         self.logger.info("Step 2: Clicking New Application")
-        self.page.click(NavigationLocators.NEW_APPLICATION_LINK)
+        self.page.click(DashboardPageLocators.APPLICATIONS_NEW_APPLICATION)
 
         # 3. Wait for Step 1 to load
         self.logger.info("Step 3: Waiting for Step 1 to load")
-        self.page.wait_for_selector(NavigationLocators.TABLE_ROWS, timeout=10000)
+        self.page.wait_for_selector(Step1SalesRepLocators.CONTRACTOR_ROWS, timeout=10000)
 
         # 4. Select sales representative DEMONET1
         self.logger.info("Step 4: Selecting sales representative")
@@ -50,20 +55,20 @@ class NavigationSteps(BasePage):
 
         # 5. Click Next button (Step 1)
         self.logger.info("Step 5: Clicking Next button (Step 1)")
-        self.page.click(NavigationLocators.STEP1_NEXT_BUTTON)
+        self.page.click(Step1SalesRepLocators.STEP1_NEXT_BUTTON)
 
         # 6. Wait for Step 2 to load
         self.logger.info("Step 6: Waiting for Step 2 to load")
-        self.page.wait_for_selector(NavigationLocators.NEW_CORPORATION_RADIO, timeout=10000)
+        self.page.wait_for_selector(Step2ExistingMerchantLocators.EXISTING_MERCHANT_NO, timeout=10000)
 
         # 7. Select "No, this is a new corporation" radio button
         self.logger.info("Step 7: Selecting 'No, this is a new corporation'")
-        self.page.click(NavigationLocators.NEW_CORPORATION_RADIO)
+        self.page.click(Step2ExistingMerchantLocators.EXISTING_MERCHANT_NO)
 
         # 8. Wait for new tab to open and click Next button (Step 2)
         self.logger.info("Step 8: Setting up popup handler and clicking Next button (Step 2)")
         with self.page.expect_popup() as popup_info:
-            self.page.click(NavigationLocators.STEP2_NEXT_BUTTON)
+            self.page.click(Step2ExistingMerchantLocators.STEP2_NEXT_BUTTON)
 
         # 9. Switch to the new tab
         new_page = popup_info.value
@@ -71,7 +76,7 @@ class NavigationSteps(BasePage):
 
         # 10. Wait for application form to load in new tab
         self.logger.info("Step 10: Waiting for application form to load in new tab")
-        new_page.wait_for_selector(NavigationLocators.APPLICATION_INFORMATION_HEADER, timeout=10000)
+        new_page.wait_for_selector(ApplicationInformationLocators.SECTION_TITLE, timeout=10000)
 
         # Update page reference to new tab
         self.page = new_page

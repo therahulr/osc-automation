@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 import time
 
 from pages.osc.base_page import BasePage
-from locators.osc_locators import NewApplicationPageLocators
+from locators.osc_locators import ApplicationInformationLocators
 from data.osc.osc_data import APPLICATION_INFO
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
@@ -18,7 +18,7 @@ class NewApplicationPage(BasePage):
     
     def __init__(self, page: Page):
         super().__init__(page)
-        self.locators = NewApplicationPageLocators
+        self.locators = ApplicationInformationLocators
         
     @performance_step("verify_application_info_section")
     @log_step
@@ -34,7 +34,7 @@ class NewApplicationPage(BasePage):
         """
         try:
             self.page.wait_for_selector(
-                self.locators.APPLICATION_INFO_SECTION, 
+                self.locators.SECTION_TITLE, 
                 timeout=timeout,
                 state="visible"
             )
@@ -266,7 +266,7 @@ class NewApplicationPage(BasePage):
         
         # Fill Corporate Atlas ID (if provided)
         results["corporate_atlas_id"] = self.fill_text_field(
-            self.locators.CORPORATE_ATLAS_ID_INPUT,
+            self.locators.CORP_ATLAS_ID_INPUT,
             app_data.get("corporate_atlas_id", ""),
             "Corporate Atlas ID"
         )
