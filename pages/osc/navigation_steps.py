@@ -67,7 +67,7 @@ class NavigationSteps(BasePage):
 
         # 8. Wait for new tab to open and click Next button (Step 2)
         self.logger.info("Step 8: Setting up popup handler and clicking Next button (Step 2)")
-        with self.page.expect_popup() as popup_info:
+        with self.page.expect_popup(timeout=60000) as popup_info:
             self.page.click(Step2ExistingMerchantLocators.STEP2_NEXT_BUTTON)
 
         # 9. Switch to the new tab

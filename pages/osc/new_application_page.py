@@ -30,11 +30,14 @@ from locators.osc_locators import (
     ServiceSelectionLocators,
     PinDebitInterchangeLocators,
     ACHSectionLocators,
+    BillingQuestionnaireLocators,
+    BankInformationLocators,
 )
 from data.osc.osc_data import (
     APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO,
     TAX_INFO, OWNER1_INFO, OWNER2_INFO,
-    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO
+    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO,
+    BILLING_QUESTIONNAIRE_INFO, BANK_INFORMATION
 )
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
@@ -1378,6 +1381,376 @@ class NewApplicationPage(BasePage):
         success_count = sum(1 for r in results.values() if r)
         total_count = len(results)
         self.logger.info(f"General Underwriting: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # BILLING QUESTIONNAIRE SECTION
+    # =========================================================================
+    
+    @performance_step("fill_billing_questionnaire")
+    @log_step
+    def fill_billing_questionnaire_section(self, billing_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the Billing Questionnaire section of the application.
+        
+        Args:
+            billing_data: Dictionary containing billing questionnaire data. 
+                         Defaults to BILLING_QUESTIONNAIRE_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = billing_data or BILLING_QUESTIONNAIRE_INFO
+        results = {}
+        loc = BillingQuestionnaireLocators
+        
+        self.logger.info("Filling Billing Questionnaire section...")
+        
+        # Type of Merchant (Radio Buttons)
+        merchant_type = data.get("merchant_type", "moto").lower()
+        
+        if merchant_type == "internet":
+            results["merchant_type"] = self.select_radio(
+                loc.MERCHANT_TYPE_INTERNET_RADIO,
+                "Merchant Type - Internet"
+            )
+        elif merchant_type == "moto":
+            results["merchant_type"] = self.select_radio(
+                loc.MERCHANT_TYPE_MOTO_RADIO,
+                "Merchant Type - MOTO"
+            )
+        elif merchant_type == "retail":
+            results["merchant_type"] = self.select_radio(
+                loc.MERCHANT_TYPE_RETAIL_RADIO,
+                "Merchant Type - Retail"
+            )
+        else:
+            self.logger.warning(f"Unknown merchant type: {merchant_type}, defaulting to MOTO")
+            results["merchant_type"] = self.select_radio(
+                loc.MERCHANT_TYPE_MOTO_RADIO,
+                "Merchant Type - MOTO"
+            )
+        
+        # Full Payment Upfront
+        if data.get("full_payment_upfront", False):
+            results["full_payment_checkbox"] = self.set_checkbox(
+                loc.FULL_PAYMENT_CHECKBOX,
+                True,
+                "Full Payment Upfront"
+            )
+            # Fill days input if checkbox is checked
+            full_payment_days = data.get("full_payment_days", "")
+            if full_payment_days:
+                results["full_payment_days"] = self.fill_text(
+                    loc.FULL_PAYMENT_DAYS_INPUT,
+                    full_payment_days,
+                    "Full Payment Days"
+                )
+            else:
+                results["full_payment_days"] = True
+        else:
+            results["full_payment_checkbox"] = True  # Skipped
+            results["full_payment_days"] = True
+        
+        # Partial Payment Upfront
+        if data.get("partial_payment_upfront", False):
+            results["partial_payment_checkbox"] = self.set_checkbox(
+                loc.PARTIAL_PAYMENT_CHECKBOX,
+                True,
+                "Partial Payment Upfront"
+            )
+            # Fill percentage and days if checkbox is checked
+            partial_percentage = data.get("partial_payment_percentage", "")
+            if partial_percentage:
+                results["partial_payment_percentage"] = self.fill_text(
+                    loc.PARTIAL_PAYMENT_PERCENTAGE_INPUT,
+                    partial_percentage,
+                    "Partial Payment Percentage"
+                )
+            else:
+                results["partial_payment_percentage"] = True
+            
+            partial_days = data.get("partial_payment_days", "")
+            if partial_days:
+                results["partial_payment_days"] = self.fill_text(
+                    loc.PARTIAL_PAYMENT_DAYS_INPUT,
+                    partial_days,
+                    "Partial Payment Days"
+                )
+            else:
+                results["partial_payment_days"] = True
+        else:
+            results["partial_payment_checkbox"] = True  # Skipped
+            results["partial_payment_percentage"] = True
+            results["partial_payment_days"] = True
+        
+        # Payment Received After Delivery
+        if data.get("payment_after_delivery", False):
+            results["payment_after_delivery"] = self.set_checkbox(
+                loc.PAYMENT_RECEIVED_CHECKBOX,
+                True,
+                "Payment After Delivery"
+            )
+        else:
+            results["payment_after_delivery"] = True  # Skipped
+        
+        # Recurring Billing Options (Monthly, Quarterly, Semi-Annually, Annually)
+        if data.get("billing_monthly", False):
+            results["billing_monthly"] = self.set_checkbox(
+                loc.BILLING_MONTHLY_CHECKBOX,
+                True,
+                "Billing Monthly"
+            )
+        else:
+            results["billing_monthly"] = True  # Skipped
+        
+        if data.get("billing_quarterly", False):
+            results["billing_quarterly"] = self.set_checkbox(
+                loc.BILLING_QUARTERLY_CHECKBOX,
+                True,
+                "Billing Quarterly"
+            )
+        else:
+            results["billing_quarterly"] = True  # Skipped
+        
+        if data.get("billing_semi_annually", False):
+            results["billing_semi_annually"] = self.set_checkbox(
+                loc.BILLING_SEMI_ANNUALLY_CHECKBOX,
+                True,
+                "Billing Semi-Annually"
+            )
+        else:
+            results["billing_semi_annually"] = True  # Skipped
+        
+        if data.get("billing_annually", False):
+            results["billing_annually"] = self.set_checkbox(
+                loc.BILLING_ANNUALLY_CHECKBOX,
+                True,
+                "Billing Annually"
+            )
+        else:
+            results["billing_annually"] = True  # Skipped
+        
+        # Outsourced to Third Party (Radio Buttons)
+        if data.get("outsourced_to_third_party", False):
+            results["outsourced"] = self.select_radio(
+                loc.OUTSOURCED_YES_RADIO,
+                "Outsourced - Yes"
+            )
+            # Fill explanation if YES is selected
+            explanation = data.get("outsourced_explanation", "")
+            if explanation:
+                results["outsourced_explanation"] = self.fill_text(
+                    loc.OUTSOURCED_EXPLANATION_TEXTAREA,
+                    explanation,
+                    "Outsourced Explanation"
+                )
+            else:
+                results["outsourced_explanation"] = True
+        else:
+            results["outsourced"] = self.select_radio(
+                loc.OUTSOURCED_NO_RADIO,
+                "Outsourced - No"
+            )
+            results["outsourced_explanation"] = True  # Not needed
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Billing Questionnaire: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    def fill_bank_information_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
+        """
+        Fill the Bank Information section of the application.
+        
+        After filling verify fields for Depository Account, an alert appears.
+        Clicking OK on the alert auto-populates the Fee Account section with same values.
+        
+        Args:
+            data: Bank information data dictionary. Uses BANK_INFORMATION from osc_data if not provided.
+        
+        Returns:
+            Dict with field names as keys and success status as values
+        """
+        if data is None:
+            data = BANK_INFORMATION
+        
+        self.logger.info("Filling Bank Information section...")
+        results = {}
+        loc = BankInformationLocators
+        
+        # ===== Bank Basic Details =====
+        
+        # Bank Name
+        results["bank_name"] = self.fill_text(
+            loc.BANK_NAME_INPUT,
+            data.get("bank_name", ""),
+            "Bank Name"
+        )
+        
+        # Bank Address 1
+        results["address1"] = self.fill_text(
+            loc.BANK_ADDRESS1_INPUT,
+            data.get("address1", ""),
+            "Bank Address 1"
+        )
+        
+        # Bank Address 2
+        results["address2"] = self.fill_text(
+            loc.BANK_ADDRESS2_INPUT,
+            data.get("address2", ""),
+            "Bank Address 2"
+        )
+        
+        # Bank City
+        results["city"] = self.fill_text(
+            loc.BANK_CITY_INPUT,
+            data.get("city", ""),
+            "Bank City"
+        )
+        
+        # Bank State (dropdown)
+        results["state"] = self.select_dropdown_by_text(
+            loc.BANK_STATE_DROPDOWN,
+            data.get("state", ""),
+            "Bank State"
+        )
+        
+        # Bank Zip
+        results["zip_code"] = self.fill_text(
+            loc.BANK_ZIP_INPUT,
+            data.get("zip_code", ""),
+            "Bank Zip"
+        )
+        
+        # Bank Country (dropdown)
+        results["country"] = self.select_dropdown_by_text(
+            loc.BANK_COUNTRY_DROPDOWN,
+            data.get("country", ""),
+            "Bank Country"
+        )
+        
+        # Bank Phone (masked input)
+        phone = data.get("phone", "")
+        if phone:
+            results["phone"] = self.fill_masked_input(
+                loc.BANK_PHONE_INPUT,
+                phone,
+                "Bank Phone"
+            )
+        else:
+            results["phone"] = True  # Skipped
+        
+        # ===== Depository Account (Credit) =====
+        
+        routing_number = data.get("routing_number", "")
+        account_number = data.get("account_number", "")
+        
+        # Routing Number
+        results["routing_number"] = self.fill_text(
+            loc.DEPOSITORY_ROUTING_NUMBER_INPUT,
+            routing_number,
+            "Depository Routing Number"
+        )
+        
+        # Account Number
+        results["account_number"] = self.fill_text(
+            loc.DEPOSITORY_ACCOUNT_NUMBER_INPUT,
+            account_number,
+            "Depository Account Number"
+        )
+        
+        # Verify Routing Number
+        results["verify_routing"] = self.fill_text(
+            loc.DEPOSITORY_ROUTING_VERIFY_INPUT,
+            routing_number,
+            "Verify Depository Routing"
+        )
+        
+        # Verify Account Number
+        results["verify_account"] = self.fill_text(
+            loc.DEPOSITORY_ACCOUNT_VERIFY_INPUT,
+            account_number,
+            "Verify Depository Account"
+        )
+        
+        # Set up dialog handler for the alert that appears when clicking Fee Routing field
+        def handle_dialog(dialog):
+            self.logger.info(f"Alert appeared: {dialog.message}")
+            dialog.accept()
+            self.logger.info("Clicked OK on alert - Fee Account should auto-populate")
+        
+        # Register the dialog handler
+        self.page.on("dialog", handle_dialog)
+        
+        try:
+            # Click on Fee Routing Number field to trigger the alert
+            self.logger.info("Clicking Fee Routing Number field to trigger alert...")
+            self.page.locator(loc.FEE_ROUTING_NUMBER_INPUT).click()
+            
+            # Wait for the alert to be handled and Fee Account to populate
+            time.sleep(1.0)
+            
+        finally:
+            # Remove the dialog handler to avoid affecting other operations
+            self.page.remove_listener("dialog", handle_dialog)
+        
+        # ===== Backward Verification - Check all 4 Fee Account fields =====
+        self.logger.info("Verifying Fee Account fields were auto-populated...")
+        
+        try:
+            # Get all Fee Account field values
+            fee_routing = self.page.locator(loc.FEE_ROUTING_NUMBER_INPUT).input_value()
+            fee_account = self.page.locator(loc.FEE_NUMBER_INPUT).input_value()
+            fee_routing_verify = self.page.locator(loc.FEE_ROUTING_VERIFY_INPUT).input_value()
+            fee_account_verify = self.page.locator(loc.FEE_VERIFY_INPUT).input_value()
+            
+            # Verify Fee Routing Number
+            if fee_routing == routing_number:
+                self.logger.info(f"Fee Routing Number verified: {fee_routing}")
+                results["fee_routing_auto"] = True
+            else:
+                self.logger.warning(f"Fee Routing mismatch. Expected: {routing_number}, Got: {fee_routing}")
+                results["fee_routing_auto"] = False
+            
+            # Verify Fee Account Number
+            if fee_account == account_number:
+                self.logger.info(f"Fee Account Number verified: {fee_account}")
+                results["fee_account_auto"] = True
+            else:
+                self.logger.warning(f"Fee Account mismatch. Expected: {account_number}, Got: {fee_account}")
+                results["fee_account_auto"] = False
+            
+            # Verify Fee Routing Verify
+            if fee_routing_verify == routing_number:
+                self.logger.info(f"Fee Routing Verify verified: {fee_routing_verify}")
+                results["fee_routing_verify_auto"] = True
+            else:
+                self.logger.warning(f"Fee Routing Verify mismatch. Expected: {routing_number}, Got: {fee_routing_verify}")
+                results["fee_routing_verify_auto"] = False
+            
+            # Verify Fee Account Verify
+            if fee_account_verify == account_number:
+                self.logger.info(f"Fee Account Verify verified: {fee_account_verify}")
+                results["fee_account_verify_auto"] = True
+            else:
+                self.logger.warning(f"Fee Account Verify mismatch. Expected: {account_number}, Got: {fee_account_verify}")
+                results["fee_account_verify_auto"] = False
+                
+        except Exception as e:
+            self.logger.warning(f"Could not verify Fee Account values: {e}")
+            results["fee_routing_auto"] = False
+            results["fee_account_auto"] = False
+            results["fee_routing_verify_auto"] = False
+            results["fee_account_verify_auto"] = False
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Bank Information: {success_count}/{total_count} fields successful")
         
         return results
 

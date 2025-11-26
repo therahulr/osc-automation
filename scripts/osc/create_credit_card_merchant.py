@@ -13,6 +13,8 @@ This script automates the full merchant creation process:
 9. Fill Owner/Officer 2
 10. Fill Trade Reference
 11. Fill General Underwriting
+12. Fill Billing Questionnaire
+13. Fill Bank Information
 
 BENEFITS:
 - Uses UIAutomationCore for automatic browser/logging management
@@ -28,7 +30,8 @@ from pages.osc.navigation_steps import NavigationSteps
 from pages.osc.new_application_page import NewApplicationPage
 from data.osc.osc_data import (
     CORPORATE_INFO, LOCATION_INFO, TAX_INFO, OWNER1_INFO, OWNER2_INFO,
-    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO
+    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO, BILLING_QUESTIONNAIRE_INFO,
+    BANK_INFORMATION
 )
 import time
 
@@ -247,6 +250,44 @@ def create_credit_card_merchant():
 
         core.take_screenshot("general_underwriting_completed")
 
+        # ==================== Step 12: Fill Billing Questionnaire ====================
+        log_step("Step 12: Filling Billing Questionnaire section")
+        
+        logger.info(f"Using Billing Data: Merchant Type = {BILLING_QUESTIONNAIRE_INFO['merchant_type']}")
+
+        billing_results = new_app_page.fill_billing_questionnaire_section()
+        all_results["billing_questionnaire"] = billing_results
+
+        billing_success = sum(1 for r in billing_results.values() if r)
+        billing_total = len(billing_results)
+
+        if billing_success == billing_total:
+            log_success(f"Billing Questionnaire: {billing_success}/{billing_total} fields")
+        else:
+            failed = [f for f, r in billing_results.items() if not r]
+            logger.warning(f"Billing Questionnaire: {billing_success}/{billing_total}. Failed: {failed}")
+
+        core.take_screenshot("billing_questionnaire_completed")
+
+        # ==================== Step 13: Fill Bank Information ====================
+        log_step("Step 13: Filling Bank Information section")
+        
+        logger.info(f"Using Bank Data: Routing={BANK_INFORMATION['routing_number']}, Account={BANK_INFORMATION['account_number']}")
+
+        bank_results = new_app_page.fill_bank_information_section()
+        all_results["bank_info"] = bank_results
+
+        bank_success = sum(1 for r in bank_results.values() if r)
+        bank_total = len(bank_results)
+
+        if bank_success == bank_total:
+            log_success(f"Bank Information: {bank_success}/{bank_total} fields")
+        else:
+            failed = [f for f, r in bank_results.items() if not r]
+            logger.warning(f"Bank Information: {bank_success}/{bank_total}. Failed: {failed}")
+
+        core.take_screenshot("bank_info_completed")
+
         time.sleep(10)
 
         # ==================== Summary ====================
@@ -254,10 +295,12 @@ def create_credit_card_merchant():
         
         total_success = (app_success + corp_success + loc_success + 
                         tax_success + owner1_success + owner2_success +
-                        trade_success + underwriting_success)
+                        trade_success + underwriting_success + billing_success +
+                        bank_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
-                       trade_total + underwriting_total)
+                       trade_total + underwriting_total + billing_total +
+                       bank_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -267,6 +310,8 @@ def create_credit_card_merchant():
         logger.info(f"Owner/Officer 2: {owner2_success}/{owner2_total}")
         logger.info(f"Trade Reference: {trade_success}/{trade_total}")
         logger.info(f"General Underwriting: {underwriting_success}/{underwriting_total}")
+        logger.info(f"Billing Questionnaire: {billing_success}/{billing_total}")
+        logger.info(f"Bank Information: {bank_success}/{bank_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -275,7 +320,7 @@ def create_credit_card_merchant():
         else:
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
-        # TODO: Add next sections (Bank Information, Credit Card Information, etc.)
+        # TODO: Add next sections (Credit Card Information, Service Selection, etc.)
 
         core.take_screenshot("final_state")
         time.sleep(10)

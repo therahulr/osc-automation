@@ -409,6 +409,53 @@ GENERAL_UNDERWRITING_INFO = {
 }
 
 
+# =====================================================
+# BILLING QUESTIONNAIRE DATA
+# =====================================================
+BILLING_QUESTIONNAIRE_INFO = {
+    # Type of Merchant (radio button): "internet", "moto", or "retail"
+    "merchant_type": random.choice(["internet", "moto", "retail"]),
+    
+    # Billing/Delivery Policy options
+    "full_payment_upfront": True,
+    "full_payment_days": str(random.randint(1, 30)),
+    
+    "partial_payment_upfront": True,
+    "partial_payment_percentage":str(random.randint(10, 90)),
+    "partial_payment_days": str(random.randint(1, 30)),
+    
+    "payment_after_delivery": True,
+    
+    # Recurring Billing Options (checkboxes)
+    "billing_monthly": False,
+    "billing_quarterly": True,
+    "billing_semi_annually": False,
+    "billing_annually": False,
+    
+    # Outsourced to Third Party
+    "outsourced_to_third_party": True,  # True = YES, False = NO
+    "outsourced_explanation": "Outsourced billing to third party provider for efficiency.",  # Only required if outsourced_to_third_party is True
+}
+
+
+# Bank Information Section
+BANK_INFORMATION = {
+    # Bank Basic Details
+    "bank_name": "Test Bank " + faker.company_suffix(),
+    "address1": faker.street_address(),
+    "address2": "Suite " + str(random.randint(100, 999)),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    
+    # Depository Account (Credit) - Routing and Account Numbers
+    "routing_number": "061000052",
+    "account_number": "61000543270",
+}
+
+
 # Sales Representative Configuration
 SALES_REPRESENTATIVE = {
     "name": "DEMONET1",
