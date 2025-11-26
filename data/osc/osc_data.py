@@ -456,6 +456,148 @@ BANK_INFORMATION = {
 }
 
 
+# Credit Card Information Section
+CREDIT_CARD_INFORMATION = {
+    # Authorization Network options: "In-House", "Nuvei", "Visanet/TSYS"
+    "authorization_network": "Visanet/TSYS",
+    
+    # Settlement Bank options: "Citizens Bank, N.A."
+    "settlement_bank": "Citizens Bank, N.A.",
+    
+    # Settlement Network options: "Vital"
+    "settlement_network": "Vital",
+    
+    # Discount Paid options: "Monthly", "Daily"
+    "discount_paid": "Monthly",
+    
+    # User Bank options: "3948"
+    "user_bank": "3948",
+}
+
+
+def generate_credit_card_underwriting_data(business_type: str = "Retail") -> Dict[str, Any]:
+    """
+    Generate random Credit Card Underwriting data with proper business logic.
+    
+    Rules:
+    - Card Present Swiped + Card Present Keyed + Card Not Present = 100%
+    - For Grocery/Retail: Card Not Present max 30%
+    - Consumer Sales + Business Sales + Government Sales = 100%
+    - Monthly Volume must be > Average Ticket (and 3-5 digits with 2 decimals)
+    - Dropdown options are in format: '0 %', '5 %', '10 %', ... '100 %'
+    
+    Args:
+        business_type: Business type (Grocery, Retail, MOTO, etc.)
+    
+    Returns:
+        Dict with all Credit Card Underwriting data
+    """
+    # Percentage options available in dropdowns (0, 5, 10, 15, ... 100)
+    percentage_options = list(range(0, 101, 5))  # [0, 5, 10, 15, ..., 100]
+    
+    # ===== Card Present Distribution (must sum to 100%) =====
+    # For Grocery/Retail: Card Not Present max 30%
+    is_retail_or_grocery = business_type.lower() in ["retail", "grocery"]
+    
+    if is_retail_or_grocery:
+        # Card Not Present: 0-30% (max 30%)
+        card_not_present_options = [p for p in percentage_options if p <= 30]
+        card_not_present = random.choice(card_not_present_options)
+    else:
+        # For MOTO/other types, can go higher
+        card_not_present = random.choice(percentage_options)
+    
+    # Remaining percentage to distribute between Swiped and Keyed
+    remaining = 100 - card_not_present
+    
+    # Find valid combinations that sum to remaining and are multiples of 5
+    valid_swiped_options = [p for p in percentage_options if p <= remaining]
+    card_present_swiped = random.choice(valid_swiped_options)
+    card_present_keyed = remaining - card_present_swiped
+    
+    # Ensure keyed is a valid dropdown option (multiple of 5)
+    # If not, adjust swiped
+    if card_present_keyed not in percentage_options:
+        # Find the nearest valid value
+        card_present_keyed = min(percentage_options, key=lambda x: abs(x - card_present_keyed))
+        card_present_swiped = remaining - card_present_keyed
+        if card_present_swiped < 0:
+            card_present_swiped = 0
+            card_present_keyed = remaining
+    
+    # ===== Sales Distribution (must sum to 100%) =====
+    # No max limit on any category
+    consumer_sales = random.choice(percentage_options)
+    remaining_sales = 100 - consumer_sales
+    
+    valid_business_options = [p for p in percentage_options if p <= remaining_sales]
+    business_sales = random.choice(valid_business_options) if valid_business_options else 0
+    government_sales = remaining_sales - business_sales
+    
+    # Ensure government is a valid dropdown option
+    if government_sales not in percentage_options:
+        government_sales = min(percentage_options, key=lambda x: abs(x - government_sales))
+        business_sales = remaining_sales - government_sales
+        if business_sales < 0:
+            business_sales = 0
+            government_sales = remaining_sales
+    
+    # ===== Volume and Ticket Values =====
+    # Monthly Volume: 3-5 digits with 2 decimals, must be > Average Ticket
+    # Generate average ticket first (smaller value)
+    average_ticket = round(random.uniform(10.00, 999.99), 2)
+    
+    # Monthly Volume must be greater than Average Ticket
+    # Generate 3-5 digit value that's greater than average_ticket
+    min_volume = max(average_ticket + 1, 100.00)  # At least 3 digits and > average_ticket
+    max_volume = 99999.99  # Max 5 digits
+    monthly_volume = round(random.uniform(min_volume, max_volume), 2)
+    
+    # Highest Ticket: should be >= Average Ticket but <= Monthly Volume
+    highest_ticket = round(random.uniform(average_ticket, min(monthly_volume, average_ticket * 10)), 2)
+    
+    # Format percentage for dropdown (e.g., "95 %")
+    def format_percent(value: int) -> str:
+        return f"{value} %"
+    
+    return {
+        # Volume fields (2 decimal precision)
+        "monthly_volume": f"{monthly_volume:.2f}",
+        "average_ticket": f"{average_ticket:.2f}",
+        "highest_ticket": f"{highest_ticket:.2f}",
+        
+        # Card Present Distribution (sum = 100%)
+        "card_present_swiped": format_percent(card_present_swiped),
+        "card_present_keyed": format_percent(card_present_keyed),
+        "card_not_present": format_percent(card_not_present),
+        
+        # Sales Distribution (sum = 100%)
+        "consumer_sales": format_percent(consumer_sales),
+        "business_sales": format_percent(business_sales),
+        "government_sales": format_percent(government_sales),
+        
+        # Business type used for rules
+        "_business_type": business_type,
+        "_card_total": card_present_swiped + card_present_keyed + card_not_present,
+        "_sales_total": consumer_sales + business_sales + government_sales,
+    }
+
+
+# Credit Card Underwriting - Generated with business rules
+# Card Present Swiped + Card Present Keyed + Card Not Present = 100%
+# Consumer Sales + Business Sales + Government Sales = 100%
+# Monthly Volume > Average Ticket
+CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data("Retail")
+
+
+# Credit Card Services - List of services to enable
+# Each service selection causes a page reload
+CREDIT_CARD_SERVICES = [
+    "Mobile Merchant",
+    "Interchange Advantage Program"
+]
+
+
 # Sales Representative Configuration
 SALES_REPRESENTATIVE = {
     "name": "DEMONET1",

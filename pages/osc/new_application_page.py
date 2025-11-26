@@ -32,12 +32,16 @@ from locators.osc_locators import (
     ACHSectionLocators,
     BillingQuestionnaireLocators,
     BankInformationLocators,
+    CreditCardInformationLocators,
+    CreditCardUnderwritingLocators,
 )
 from data.osc.osc_data import (
     APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO,
     TAX_INFO, OWNER1_INFO, OWNER2_INFO,
     TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO,
-    BILLING_QUESTIONNAIRE_INFO, BANK_INFORMATION
+    BILLING_QUESTIONNAIRE_INFO, BANK_INFORMATION,
+    CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
+    CREDIT_CARD_UNDERWRITING, generate_credit_card_underwriting_data
 )
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
@@ -1751,6 +1755,353 @@ class NewApplicationPage(BasePage):
         success_count = sum(1 for r in results.values() if r)
         total_count = len(results)
         self.logger.info(f"Bank Information: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    def fill_credit_card_information_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
+        """
+        Fill the Credit Card Information section of the application.
+        
+        This section contains dropdowns for:
+        - Authorization Network
+        - Settlement Bank
+        - Settlement Network
+        - Discount Paid
+        - User Bank
+        
+        Args:
+            data: Credit card information data dictionary. Uses CREDIT_CARD_INFORMATION from osc_data if not provided.
+        
+        Returns:
+            Dict with field names as keys and success status as values
+        """
+        if data is None:
+            data = CREDIT_CARD_INFORMATION
+        
+        self.logger.info("Filling Credit Card Information section...")
+        results = {}
+        loc = CreditCardInformationLocators
+        
+        # Authorization Network
+        auth_network = data.get("authorization_network", "")
+        if auth_network:
+            results["authorization_network"] = self.select_dropdown_by_text(
+                loc.AUTHORIZATION_NETWORK_DROPDOWN,
+                auth_network,
+                "Authorization Network"
+            )
+        else:
+            results["authorization_network"] = True  # Skipped
+        
+        # Settlement Bank
+        settlement_bank = data.get("settlement_bank", "")
+        if settlement_bank:
+            results["settlement_bank"] = self.select_dropdown_by_text(
+                loc.SETTLEMENT_BANK_DROPDOWN,
+                settlement_bank,
+                "Settlement Bank"
+            )
+        else:
+            results["settlement_bank"] = True  # Skipped
+        
+        # Settlement Network
+        settlement_network = data.get("settlement_network", "")
+        if settlement_network:
+            results["settlement_network"] = self.select_dropdown_by_text(
+                loc.SETTLEMENT_NETWORK_DROPDOWN,
+                settlement_network,
+                "Settlement Network"
+            )
+        else:
+            results["settlement_network"] = True  # Skipped
+        
+        # Discount Paid
+        discount_paid = data.get("discount_paid", "")
+        if discount_paid:
+            results["discount_paid"] = self.select_dropdown_by_text(
+                loc.DISCOUNT_PAID_DROPDOWN,
+                discount_paid,
+                "Discount Paid"
+            )
+        else:
+            results["discount_paid"] = True  # Skipped
+        
+        # User Bank
+        user_bank = data.get("user_bank", "")
+        if user_bank:
+            results["user_bank"] = self.select_dropdown_by_text(
+                loc.USER_BANK_DROPDOWN,
+                user_bank,
+                "User Bank"
+            )
+        else:
+            results["user_bank"] = True  # Skipped
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Credit Card Information: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    def fill_credit_card_services_section(self, services: list = None) -> Dict[str, bool]:
+        """
+        Fill the Credit Card Services section by selecting services from the list.
+        
+        IMPORTANT: Each service selection causes a page reload.
+        Services are selected one by one with wait for page stability after each.
+        
+        Args:
+            services: List of service names to enable. Uses CREDIT_CARD_SERVICES from osc_data if not provided.
+        
+        Returns:
+            Dict with service names as keys and success status as values
+        """
+        if services is None:
+            services = CREDIT_CARD_SERVICES
+        
+        self.logger.info(f"Filling Credit Card Services section... ({len(services)} services to select)")
+        results = {}
+        
+        # First, scroll to the Credit Card Services table to ensure it's visible
+        services_table = self.page.locator("#ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_GridView1")
+        try:
+            services_table.scroll_into_view_if_needed(timeout=10000)
+            time.sleep(0.5)  # Brief wait after scroll
+        except Exception as e:
+            self.logger.warning(f"Could not scroll to services table: {e}")
+        
+        for service_name in services:
+            try:
+                self.logger.info(f"Selecting service: {service_name}")
+                
+                # Get the checkbox locator for this service using the static method
+                checkbox_xpath = ServiceSelectionLocators.SERVICE_CHECKBOX_LOCATOR(service_name)
+                self.logger.info(f"Using locator: {checkbox_xpath}")
+                
+                checkbox = self.page.locator(checkbox_xpath)
+                
+                # Wait for checkbox to be present in DOM
+                try:
+                    checkbox.wait_for(state="attached", timeout=10000)
+                except Exception:
+                    self.logger.warning(f"Service '{service_name}' checkbox not found in DOM")
+                    results[service_name] = False
+                    continue
+                
+                # Scroll to the checkbox if needed
+                try:
+                    checkbox.scroll_into_view_if_needed()
+                    time.sleep(0.3)
+                except Exception:
+                    pass
+                
+                # Check if already selected
+                if checkbox.is_checked():
+                    self.logger.info(f"Service '{service_name}' already selected")
+                    results[service_name] = True
+                    continue
+                
+                # Click the checkbox - this will trigger a page reload via __doPostBack
+                self.logger.info(f"Clicking checkbox for '{service_name}'...")
+                checkbox.click()
+                
+                # Wait for page to reload/stabilize after selection
+                # The onclick triggers __doPostBack which causes an ASP.NET postback
+                time.sleep(2.0)  # Wait for postback to start
+                
+                # Wait for the page to be stable (network idle)
+                self.page.wait_for_load_state("networkidle", timeout=30000)
+                
+                # Re-locate the checkbox after page reload
+                checkbox = self.page.locator(checkbox_xpath)
+                
+                # Verify the checkbox is now checked after reload
+                try:
+                    checkbox.wait_for(state="attached", timeout=5000)
+                    if checkbox.is_checked():
+                        self.logger.info(f"Service '{service_name}' selected successfully")
+                        results[service_name] = True
+                    else:
+                        self.logger.warning(f"Service '{service_name}' may not have been selected properly")
+                        results[service_name] = False
+                except Exception:
+                    self.logger.warning(f"Could not verify '{service_name}' checkbox state after reload")
+                    results[service_name] = False
+                    
+            except Exception as e:
+                self.logger.error(f"Error selecting service '{service_name}': {e}")
+                results[service_name] = False
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Credit Card Services: {success_count}/{total_count} services selected")
+        
+        return results
+
+    def fill_credit_card_underwriting_section(self, data: Dict[str, Any] = None, business_type: str = "Retail") -> Dict[str, bool]:
+        """
+        Fill the Credit Card Underwriting section of the application.
+        
+        Business Rules:
+        - Card Present Swiped + Card Present Keyed + Card Not Present = 100%
+        - For Grocery/Retail: Card Not Present max 30%
+        - Consumer Sales + Business Sales + Government Sales = 100%
+        - Monthly Volume > Average Ticket
+        - Dropdown options format: '0 %', '5 %', '10 %', ... '100 %'
+        
+        Args:
+            data: Credit card underwriting data. If None, generates random data with proper rules.
+            business_type: Business type for applying rules (Grocery, Retail, MOTO, etc.)
+        
+        Returns:
+            Dict with field names as keys and success status as values
+        """
+        # Generate data if not provided
+        if data is None:
+            data = generate_credit_card_underwriting_data(business_type)
+        
+        self.logger.info("Filling Credit Card Underwriting section...")
+        self.logger.info(f"Data: Monthly Volume={data.get('monthly_volume')}, "
+                        f"Avg Ticket={data.get('average_ticket')}, "
+                        f"Swiped={data.get('card_present_swiped')}, "
+                        f"Keyed={data.get('card_present_keyed')}, "
+                        f"Not Present={data.get('card_not_present')}, "
+                        f"Consumer={data.get('consumer_sales')}, "
+                        f"Business={data.get('business_sales')}, "
+                        f"Govt={data.get('government_sales')}")
+        
+        results = {}
+        loc = CreditCardUnderwritingLocators
+        
+        # Scroll to Credit Card Underwriting section
+        try:
+            section = self.page.locator(loc.SECTION_CREDIT_CARD_UNDERWRITING)
+            section.scroll_into_view_if_needed(timeout=5000)
+            time.sleep(0.5)
+        except Exception as e:
+            self.logger.warning(f"Could not scroll to Credit Card Underwriting section: {e}")
+        
+        # ===== Row 1: Monthly Volume, Card Present Swiped, Consumer Sales =====
+        
+        # Monthly Volume (input field)
+        monthly_volume = data.get("monthly_volume", "")
+        if monthly_volume:
+            try:
+                self.page.fill(loc.MONTHLY_VOLUME_INPUT, str(monthly_volume))
+                self.logger.info(f"Monthly Volume: {monthly_volume}")
+                results["monthly_volume"] = True
+            except Exception as e:
+                self.logger.error(f"Failed to fill Monthly Volume: {e}")
+                results["monthly_volume"] = False
+        
+        # Card Present Swiped (dropdown)
+        card_present_swiped = data.get("card_present_swiped", "")
+        if card_present_swiped:
+            results["card_present_swiped"] = self.select_dropdown_by_text(
+                loc.CARD_PRESENT_SWIPED_DROPDOWN,
+                card_present_swiped,
+                "Card Present Swiped"
+            )
+        
+        # Consumer Sales (dropdown)
+        consumer_sales = data.get("consumer_sales", "")
+        if consumer_sales:
+            results["consumer_sales"] = self.select_dropdown_by_text(
+                loc.SALES_TO_CONSUMER_DROPDOWN,
+                consumer_sales,
+                "Consumer Sales"
+            )
+        
+        # ===== Row 2: Average Ticket, Card Present Keyed, Business Sales =====
+        
+        # Average Ticket (input field)
+        average_ticket = data.get("average_ticket", "")
+        if average_ticket:
+            try:
+                self.page.fill(loc.AVERAGE_TICKET_INPUT, str(average_ticket))
+                self.logger.info(f"Average Ticket: {average_ticket}")
+                results["average_ticket"] = True
+            except Exception as e:
+                self.logger.error(f"Failed to fill Average Ticket: {e}")
+                results["average_ticket"] = False
+        
+        # Card Present Keyed (dropdown)
+        card_present_keyed = data.get("card_present_keyed", "")
+        if card_present_keyed:
+            results["card_present_keyed"] = self.select_dropdown_by_text(
+                loc.CARD_PRESENT_KEYED_DROPDOWN,
+                card_present_keyed,
+                "Card Present Keyed"
+            )
+        
+        # Business Sales (dropdown)
+        business_sales = data.get("business_sales", "")
+        if business_sales:
+            results["business_sales"] = self.select_dropdown_by_text(
+                loc.BUSINESS_SALES_DROPDOWN,
+                business_sales,
+                "Business Sales"
+            )
+        
+        # ===== Row 3: Highest Ticket, Card Not Present, Government Sales =====
+        
+        # Highest Ticket (input field)
+        highest_ticket = data.get("highest_ticket", "")
+        if highest_ticket:
+            try:
+                self.page.fill(loc.HIGHEST_TICKET_INPUT, str(highest_ticket))
+                self.logger.info(f"Highest Ticket: {highest_ticket}")
+                results["highest_ticket"] = True
+            except Exception as e:
+                self.logger.error(f"Failed to fill Highest Ticket: {e}")
+                results["highest_ticket"] = False
+        
+        # Card Not Present (dropdown)
+        card_not_present = data.get("card_not_present", "")
+        if card_not_present:
+            results["card_not_present"] = self.select_dropdown_by_text(
+                loc.CARD_NOT_PRESENT_DROPDOWN,
+                card_not_present,
+                "Card Not Present"
+            )
+        
+        # Government Sales (dropdown)
+        government_sales = data.get("government_sales", "")
+        if government_sales:
+            results["government_sales"] = self.select_dropdown_by_text(
+                loc.GOVERNMENT_SALES_DROPDOWN,
+                government_sales,
+                "Government Sales"
+            )
+        
+        # ===== Validation: Check Totals =====
+        # The totals are auto-calculated by the page, but we can log for verification
+        try:
+            card_total_elem = self.page.locator(loc.CREDIT_TOTAL_1_INPUT)
+            if card_total_elem.is_visible():
+                card_total = card_total_elem.input_value()
+                self.logger.info(f"Card Present Total (auto-calculated): {card_total}")
+        except Exception:
+            pass
+        
+        try:
+            sales_total_elem = self.page.locator(loc.CREDIT_TOTAL_2_INPUT)
+            if sales_total_elem.is_visible():
+                sales_total = sales_total_elem.input_value()
+                self.logger.info(f"Sales Total (auto-calculated): {sales_total}")
+        except Exception:
+            pass
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        failed_fields = [k for k, v in results.items() if not v]
+        
+        self.logger.info(f"Credit Card Underwriting: {success_count}/{total_count} fields successful")
+        if failed_fields:
+            self.logger.warning(f"Failed fields: {failed_fields}")
         
         return results
 

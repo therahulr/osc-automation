@@ -15,6 +15,9 @@ This script automates the full merchant creation process:
 11. Fill General Underwriting
 12. Fill Billing Questionnaire
 13. Fill Bank Information
+14. Fill Credit Card Information
+15. Fill Credit Card Services
+16. Fill Credit Card Underwriting
 
 BENEFITS:
 - Uses UIAutomationCore for automatic browser/logging management
@@ -31,7 +34,8 @@ from pages.osc.new_application_page import NewApplicationPage
 from data.osc.osc_data import (
     CORPORATE_INFO, LOCATION_INFO, TAX_INFO, OWNER1_INFO, OWNER2_INFO,
     TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO, BILLING_QUESTIONNAIRE_INFO,
-    BANK_INFORMATION
+    BANK_INFORMATION, CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
+    CREDIT_CARD_UNDERWRITING
 )
 import time
 
@@ -288,6 +292,70 @@ def create_credit_card_merchant():
 
         core.take_screenshot("bank_info_completed")
 
+        # ==================== Step 14: Fill Credit Card Information ====================
+        log_step("Step 14: Filling Credit Card Information section")
+        
+        logger.info(f"Using Credit Card Data: Auth Network={CREDIT_CARD_INFORMATION['authorization_network']}")
+
+        cc_info_results = new_app_page.fill_credit_card_information_section()
+        all_results["credit_card_info"] = cc_info_results
+
+        cc_info_success = sum(1 for r in cc_info_results.values() if r)
+        cc_info_total = len(cc_info_results)
+
+        if cc_info_success == cc_info_total:
+            log_success(f"Credit Card Information: {cc_info_success}/{cc_info_total} fields")
+        else:
+            failed = [f for f, r in cc_info_results.items() if not r]
+            logger.warning(f"Credit Card Information: {cc_info_success}/{cc_info_total}. Failed: {failed}")
+
+        core.take_screenshot("credit_card_info_completed")
+
+        # ==================== Step 15: Fill Credit Card Services ====================
+        log_step("Step 15: Filling Credit Card Services section")
+        
+        logger.info(f"Services to select: {CREDIT_CARD_SERVICES}")
+
+        cc_services_results = new_app_page.fill_credit_card_services_section()
+        all_results["credit_card_services"] = cc_services_results
+
+        cc_services_success = sum(1 for r in cc_services_results.values() if r)
+        cc_services_total = len(cc_services_results)
+
+        if cc_services_success == cc_services_total:
+            log_success(f"Credit Card Services: {cc_services_success}/{cc_services_total} services")
+        else:
+            failed = [f for f, r in cc_services_results.items() if not r]
+            logger.warning(f"Credit Card Services: {cc_services_success}/{cc_services_total}. Failed: {failed}")
+
+        core.take_screenshot("credit_card_services_completed")
+
+        # ==================== Step 16: Fill Credit Card Underwriting ====================
+        log_step("Step 16: Filling Credit Card Underwriting section")
+        
+        logger.info(f"Using Credit Card Underwriting Data: Monthly Volume={CREDIT_CARD_UNDERWRITING['monthly_volume']}, "
+                   f"Avg Ticket={CREDIT_CARD_UNDERWRITING['average_ticket']}")
+        logger.info(f"Card Distribution: Swiped={CREDIT_CARD_UNDERWRITING['card_present_swiped']}, "
+                   f"Keyed={CREDIT_CARD_UNDERWRITING['card_present_keyed']}, "
+                   f"Not Present={CREDIT_CARD_UNDERWRITING['card_not_present']}")
+        logger.info(f"Sales Distribution: Consumer={CREDIT_CARD_UNDERWRITING['consumer_sales']}, "
+                   f"Business={CREDIT_CARD_UNDERWRITING['business_sales']}, "
+                   f"Govt={CREDIT_CARD_UNDERWRITING['government_sales']}")
+
+        cc_underwriting_results = new_app_page.fill_credit_card_underwriting_section()
+        all_results["credit_card_underwriting"] = cc_underwriting_results
+
+        cc_underwriting_success = sum(1 for r in cc_underwriting_results.values() if r)
+        cc_underwriting_total = len(cc_underwriting_results)
+
+        if cc_underwriting_success == cc_underwriting_total:
+            log_success(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total} fields")
+        else:
+            failed = [f for f, r in cc_underwriting_results.items() if not r]
+            logger.warning(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}. Failed: {failed}")
+
+        core.take_screenshot("credit_card_underwriting_completed")
+
         time.sleep(10)
 
         # ==================== Summary ====================
@@ -296,11 +364,13 @@ def create_credit_card_merchant():
         total_success = (app_success + corp_success + loc_success + 
                         tax_success + owner1_success + owner2_success +
                         trade_success + underwriting_success + billing_success +
-                        bank_success)
+                        bank_success + cc_info_success + cc_services_success +
+                        cc_underwriting_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
-                       bank_total)
+                       bank_total + cc_info_total + cc_services_total +
+                       cc_underwriting_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -312,6 +382,9 @@ def create_credit_card_merchant():
         logger.info(f"General Underwriting: {underwriting_success}/{underwriting_total}")
         logger.info(f"Billing Questionnaire: {billing_success}/{billing_total}")
         logger.info(f"Bank Information: {bank_success}/{bank_total}")
+        logger.info(f"Credit Card Information: {cc_info_success}/{cc_info_total}")
+        logger.info(f"Credit Card Services: {cc_services_success}/{cc_services_total}")
+        logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -320,7 +393,7 @@ def create_credit_card_merchant():
         else:
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
-        # TODO: Add next sections (Credit Card Information, Service Selection, etc.)
+        # TODO: Add next sections (Credit Card Interchange, Equipment, etc.)
 
         core.take_screenshot("final_state")
         time.sleep(10)

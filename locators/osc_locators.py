@@ -620,7 +620,6 @@ class ServiceSelectionLocators:
             f"//tr[td//span[normalize-space(text())='{service_name}']]"
             f"//input[@type='checkbox']"
         )
-    
 
 class CreditCardUnderwritingLocators:
 
