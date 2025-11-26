@@ -41,7 +41,8 @@ from data.osc.osc_data import (
     TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO,
     BILLING_QUESTIONNAIRE_INFO, BANK_INFORMATION,
     CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
-    CREDIT_CARD_UNDERWRITING, generate_credit_card_underwriting_data
+    CREDIT_CARD_UNDERWRITING, generate_credit_card_underwriting_data,
+    CREDIT_CARD_INTERCHANGE
 )
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
@@ -2100,6 +2101,232 @@ class NewApplicationPage(BasePage):
         failed_fields = [k for k, v in results.items() if not v]
         
         self.logger.info(f"Credit Card Underwriting: {success_count}/{total_count} fields successful")
+        if failed_fields:
+            self.logger.warning(f"Failed fields: {failed_fields}")
+        
+        return results
+
+    def _select_bet_from_modal(self, bet_button_locator: str, bet_number: str, card_type: str) -> bool:
+        """
+        Helper method to select a BET from the modal popup.
+        
+        Args:
+            bet_button_locator: CSS selector for the BET button to click
+            bet_number: The BET number to select in the modal
+            card_type: Name of the card type for logging (Visa, MasterCard, etc.)
+        
+        Returns:
+            True if BET was selected successfully, False otherwise
+        """
+        loc = CreditCardUnderwritingLocators
+        
+        try:
+            self.logger.info(f"Selecting {card_type} BET: {bet_number}")
+            
+            # Click the BET button to open modal
+            bet_button = self.page.locator(bet_button_locator)
+            bet_button.scroll_into_view_if_needed()
+            time.sleep(0.3)
+            bet_button.click()
+            
+            # Wait for modal to appear
+            modal = self.page.locator(loc.BET_MODAL)
+            modal.wait_for(state="visible", timeout=10000)
+            self.logger.info(f"{card_type} BET modal opened")
+            time.sleep(0.5)  # Brief wait for modal content to load
+            
+            # Find the checkbox for the specific BET number
+            checkbox_xpath = loc.BET_CHECKBOX_BY_NUMBER(bet_number)
+            checkbox = self.page.locator(checkbox_xpath)
+            
+            # Try to scroll to the checkbox within the modal
+            try:
+                # First check if checkbox exists
+                checkbox.wait_for(state="attached", timeout=5000)
+                
+                # Scroll the checkbox into view within the modal
+                checkbox.scroll_into_view_if_needed()
+                time.sleep(0.3)
+            except Exception as scroll_err:
+                self.logger.warning(f"Could not scroll to BET {bet_number}: {scroll_err}")
+            
+            # Click the checkbox
+            checkbox.click()
+            self.logger.info(f"Clicked checkbox for BET {bet_number}")
+            
+            # Wait for page to reload after BET selection
+            time.sleep(2.0)
+            self.page.wait_for_load_state("networkidle", timeout=30000)
+            
+            self.logger.info(f"{card_type} BET {bet_number} selected successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to select {card_type} BET {bet_number}: {e}")
+            return False
+
+    def fill_credit_card_interchange_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
+        """
+        Fill the Credit Card Interchange section of the application.
+        
+        This section includes:
+        - Interchange Type dropdown
+        - Chargeback dropdown
+        - FANF Type dropdown
+        - Visa BET selection (opens modal)
+        - MasterCard BET selection (opens modal)
+        - Discover BET selection (opens modal)
+        - AMEX BET selection (opens modal)
+        - AMEX options (Does not accept, Opt out marketing, Annual Volume)
+        
+        Args:
+            data: Credit card interchange data. Uses CREDIT_CARD_INTERCHANGE from osc_data if not provided.
+        
+        Returns:
+            Dict with field names as keys and success status as values
+        """
+        if data is None:
+            data = CREDIT_CARD_INTERCHANGE
+        
+        self.logger.info("Filling Credit Card Interchange section...")
+        self.logger.info(f"Data: Type={data.get('interchange_type')}, "
+                        f"Visa BET={data.get('visa_bet_number')}, "
+                        f"MC BET={data.get('mastercard_bet_number')}, "
+                        f"Discover BET={data.get('discover_bet_number')}, "
+                        f"AMEX BET={data.get('amex_bet_number')}, "
+                        f"Does not accept AMEX={data.get('does_not_accept_amex')}")
+        
+        results = {}
+        loc = CreditCardUnderwritingLocators
+        
+        # Scroll to Credit Card Interchange section
+        try:
+            section = self.page.locator(loc.SECTION_CREDIT_CARD_INTERCHANGE)
+            section.scroll_into_view_if_needed(timeout=5000)
+            time.sleep(0.5)
+        except Exception as e:
+            self.logger.warning(f"Could not scroll to Credit Card Interchange section: {e}")
+        
+        # ===== Interchange Type Dropdown =====
+        interchange_type = data.get("interchange_type", "")
+        if interchange_type:
+            results["interchange_type"] = self.select_dropdown_by_text(
+                loc.INTERCHANGE_TYPE_DROPDOWN,
+                interchange_type,
+                "Interchange Type"
+            )
+        
+        # ===== Chargeback Dropdown =====
+        chargeback = data.get("chargeback", "")
+        if chargeback:
+            results["chargeback"] = self.select_dropdown_by_text(
+                loc.CHARGEBACK_BET_DROPDOWN,
+                chargeback,
+                "Chargeback"
+            )
+        
+        # ===== FANF Type Dropdown =====
+        fanf_type = data.get("fanf_type", "")
+        if fanf_type:
+            results["fanf_type"] = self.select_dropdown_by_text(
+                loc.FANF_TYPE_DROPDOWN,
+                fanf_type,
+                "FANF Type"
+            )
+        
+        # ===== Visa BET Selection =====
+        visa_bet = data.get("visa_bet_number", "")
+        if visa_bet:
+            results["visa_bet"] = self._select_bet_from_modal(
+                loc.VISA_BET_BUTTON,
+                visa_bet,
+                "Visa"
+            )
+        
+        # ===== MasterCard BET Selection =====
+        mc_bet = data.get("mastercard_bet_number", "")
+        if mc_bet:
+            results["mastercard_bet"] = self._select_bet_from_modal(
+                loc.MC_BET_BUTTON,
+                mc_bet,
+                "MasterCard"
+            )
+        
+        # ===== Discover BET Selection =====
+        discover_bet = data.get("discover_bet_number", "")
+        if discover_bet:
+            results["discover_bet"] = self._select_bet_from_modal(
+                loc.DISCOVER_BET_BUTTON,
+                discover_bet,
+                "Discover"
+            )
+        
+        # ===== AMEX Section =====
+        does_not_accept_amex = data.get("does_not_accept_amex", False)
+        
+        if does_not_accept_amex:
+            # Select "Does not wish to accept Amex Cards" checkbox
+            try:
+                amex_checkbox = self.page.locator(loc.AMEX_NOT_ACCEPT_CHECKBOX)
+                amex_checkbox.scroll_into_view_if_needed()
+                time.sleep(0.3)
+                
+                if not amex_checkbox.is_checked():
+                    amex_checkbox.click()
+                    self.logger.info("Selected 'Does not wish to accept Amex Cards'")
+                else:
+                    self.logger.info("'Does not wish to accept Amex Cards' already selected")
+                
+                results["does_not_accept_amex"] = True
+            except Exception as e:
+                self.logger.error(f"Failed to select 'Does not accept AMEX' checkbox: {e}")
+                results["does_not_accept_amex"] = False
+        else:
+            # Merchant accepts AMEX - select BET
+            amex_bet = data.get("amex_bet_number", "")
+            if amex_bet:
+                results["amex_bet"] = self._select_bet_from_modal(
+                    loc.AMEX_BET_BUTTON,
+                    amex_bet,
+                    "AMEX"
+                )
+            
+            # AMEX Annual Volume (if accepting AMEX)
+            amex_annual_volume = data.get("amex_annual_volume", "")
+            if amex_annual_volume:
+                try:
+                    self.page.fill(loc.AMEX_ANNUAL_VOLUME_INPUT, str(amex_annual_volume))
+                    self.logger.info(f"AMEX Annual Volume: {amex_annual_volume}")
+                    results["amex_annual_volume"] = True
+                except Exception as e:
+                    self.logger.error(f"Failed to fill AMEX Annual Volume: {e}")
+                    results["amex_annual_volume"] = False
+        
+        # ===== AMEX Opt-out Marketing (applies regardless of acceptance) =====
+        amex_optout = data.get("amex_optout_marketing", False)
+        if amex_optout:
+            try:
+                optout_checkbox = self.page.locator(loc.AMEX_OPTOUT_MARKETING_CHECKBOX)
+                optout_checkbox.scroll_into_view_if_needed()
+                time.sleep(0.3)
+                
+                if not optout_checkbox.is_checked():
+                    optout_checkbox.click()
+                    self.logger.info("Selected AMEX opt-out marketing checkbox")
+                else:
+                    self.logger.info("AMEX opt-out marketing already selected")
+                
+                results["amex_optout_marketing"] = True
+            except Exception as e:
+                self.logger.error(f"Failed to select AMEX opt-out marketing checkbox: {e}")
+                results["amex_optout_marketing"] = False
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        failed_fields = [k for k, v in results.items() if not v]
+        
+        self.logger.info(f"Credit Card Interchange: {success_count}/{total_count} fields successful")
         if failed_fields:
             self.logger.warning(f"Failed fields: {failed_fields}")
         

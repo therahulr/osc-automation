@@ -18,6 +18,7 @@ This script automates the full merchant creation process:
 14. Fill Credit Card Information
 15. Fill Credit Card Services
 16. Fill Credit Card Underwriting
+17. Fill Credit Card Interchange
 
 BENEFITS:
 - Uses UIAutomationCore for automatic browser/logging management
@@ -35,7 +36,7 @@ from data.osc.osc_data import (
     CORPORATE_INFO, LOCATION_INFO, TAX_INFO, OWNER1_INFO, OWNER2_INFO,
     TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO, BILLING_QUESTIONNAIRE_INFO,
     BANK_INFORMATION, CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
-    CREDIT_CARD_UNDERWRITING
+    CREDIT_CARD_UNDERWRITING, CREDIT_CARD_INTERCHANGE
 )
 import time
 
@@ -356,6 +357,30 @@ def create_credit_card_merchant():
 
         core.take_screenshot("credit_card_underwriting_completed")
 
+        # ==================== Step 17: Fill Credit Card Interchange ====================
+        log_step("Step 17: Filling Credit Card Interchange section")
+        
+        logger.info(f"Using Credit Card Interchange Data: Type={CREDIT_CARD_INTERCHANGE['interchange_type']}")
+        logger.info(f"BET Numbers: Visa={CREDIT_CARD_INTERCHANGE['visa_bet_number']}, "
+                   f"MC={CREDIT_CARD_INTERCHANGE['mastercard_bet_number']}, "
+                   f"Discover={CREDIT_CARD_INTERCHANGE['discover_bet_number']}, "
+                   f"AMEX={CREDIT_CARD_INTERCHANGE['amex_bet_number']}")
+        logger.info(f"Does not accept AMEX: {CREDIT_CARD_INTERCHANGE['does_not_accept_amex']}")
+
+        cc_interchange_results = new_app_page.fill_credit_card_interchange_section()
+        all_results["credit_card_interchange"] = cc_interchange_results
+
+        cc_interchange_success = sum(1 for r in cc_interchange_results.values() if r)
+        cc_interchange_total = len(cc_interchange_results)
+
+        if cc_interchange_success == cc_interchange_total:
+            log_success(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total} fields")
+        else:
+            failed = [f for f, r in cc_interchange_results.items() if not r]
+            logger.warning(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}. Failed: {failed}")
+
+        core.take_screenshot("credit_card_interchange_completed")
+
         time.sleep(10)
 
         # ==================== Summary ====================
@@ -365,12 +390,12 @@ def create_credit_card_merchant():
                         tax_success + owner1_success + owner2_success +
                         trade_success + underwriting_success + billing_success +
                         bank_success + cc_info_success + cc_services_success +
-                        cc_underwriting_success)
+                        cc_underwriting_success + cc_interchange_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
                        bank_total + cc_info_total + cc_services_total +
-                       cc_underwriting_total)
+                       cc_underwriting_total + cc_interchange_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -385,6 +410,7 @@ def create_credit_card_merchant():
         logger.info(f"Credit Card Information: {cc_info_success}/{cc_info_total}")
         logger.info(f"Credit Card Services: {cc_services_success}/{cc_services_total}")
         logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
+        logger.info(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -393,7 +419,7 @@ def create_credit_card_merchant():
         else:
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
-        # TODO: Add next sections (Credit Card Interchange, Equipment, etc.)
+        # TODO: Add next sections (Equipment, etc.)
 
         core.take_screenshot("final_state")
         time.sleep(10)

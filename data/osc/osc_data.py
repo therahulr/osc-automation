@@ -590,6 +590,37 @@ def generate_credit_card_underwriting_data(business_type: str = "Retail") -> Dic
 CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data("Retail")
 
 
+# Credit Card Interchange Configuration
+# BET Numbers for each card network
+CREDIT_CARD_INTERCHANGE = {
+    # Interchange Type dropdown options: "Tiered", "Interchange Plus", etc.
+    "interchange_type": "Tiered",
+    
+    # Chargeback dropdown options: "0.00", "0.01", etc.
+    "chargeback": "0.00",
+    
+    # FANF dropdown options: "FANF CP/CNP (Varies*)", etc.
+    "fanf_type": "FANF CP/CNP (Varies*)",
+    
+    # BET Numbers for each card network
+    "visa_bet_number": "7291",
+    "mastercard_bet_number": "5291",
+    "discover_bet_number": "3191",
+    "amex_bet_number": "4128",
+    
+    # AMEX Options
+    # If True, merchant does not accept AMEX cards (checkbox will be selected)
+    # If False, merchant accepts AMEX cards (checkbox will not be selected)
+    "does_not_accept_amex": False,
+    
+    # If True, merchant opts out of AMEX marketing materials
+    "amex_optout_marketing": False,
+    
+    # Annual AMEX Volume (optional, only if accepting AMEX)
+    "amex_annual_volume": "0.00",
+}
+
+
 # Credit Card Services - List of services to enable
 # Each service selection causes a page reload
 CREDIT_CARD_SERVICES = [

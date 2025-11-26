@@ -659,6 +659,15 @@ class CreditCardUnderwritingLocators:
     # ===== Visa Section =====
     VISA_BET_VALUE = "#ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_fvCreditUnderwriting_lblVisaBET"
     VISA_BET_BUTTON = "#ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_fvCreditUnderwriting_btnVisaBET"
+    BET_MODAL = "//div[@id='divBetInterchange' and contains(@class,'in')]"
+
+    def BET_CHECKBOX_BY_NUMBER(bet_no: str) -> str:
+        return (
+            f"//table[@id='ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_BETGridView']"
+            f"//tr[td[2][normalize-space(text())='{bet_no}']]"
+            "//input[contains(@id,'ckbSelected')]"
+        )
+
     VISA_MATCH_BUTTON = "#ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_fvCreditUnderwriting_btnVisaMatch"
 
     VISA_QUALIFIED_RATE_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_fvCreditUnderwriting_txtVisaDiscountQualifiedRate"
@@ -1677,3 +1686,4 @@ class ACHOriginatorLocators:
         "[td[1][normalize-space(text())='{name}']]"
         "//a[contains(@id,'btnGridView1Delete')]"
     )
+
