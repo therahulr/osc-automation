@@ -200,6 +200,148 @@ class OSCBasePage:
         except Exception as e:
             self.logger.error(f"{field_name}: Failed to fill masked input - {e}")
             return False
+
+    def fill_masked_equity_input(self, selector: str, value: str, field_name: str = None,
+                                  delay_ms: int = 100) -> bool:
+        """
+        Fill a masked equity input field (format: 0__ for 3 digits, default value 0).
+        
+        Clears the default value first by pressing backspace slowly, then types the new value.
+        Used for equity percentage fields where owner percentages must sum to 100.
+        
+        Args:
+            selector: CSS or XPath selector for the input
+            value: Equity percentage value (e.g., '60', '40')
+            field_name: Friendly name for logging
+            delay_ms: Delay between keystrokes in milliseconds (default: 100ms)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        field_name = field_name or selector[:40]
+        
+        if not value:
+            self.logger.debug(f"{field_name}: Skipped (empty value)")
+            return True
+        
+        # Extract digits only
+        digits = ''.join(c for c in str(value) if c.isdigit())
+        
+        if not digits:
+            self.logger.warning(f"{field_name}: No digits found in value '{value}'")
+            return False
+        
+        try:
+            self.wait_for_element(selector, timeout=self.SHORT_TIMEOUT)
+            
+            # Click to focus the field
+            self.page.click(selector)
+            time.sleep(0.1)
+            
+            # Clear existing content by pressing backspace multiple times slowly
+            # The field has format 0__ (3 chars), so press backspace 3 times
+            for _ in range(3):
+                self.page.keyboard.press("Backspace")
+                time.sleep(delay_ms / 1000)
+            
+            time.sleep(0.1)
+            
+            # Type each digit slowly
+            for digit in digits:
+                self.page.keyboard.press(digit)
+                time.sleep(delay_ms / 1000)
+            
+            # Verify by getting the value back
+            actual = self.get_text_value(selector)
+            
+            # Check if digits are present in the result
+            actual_digits = ''.join(c for c in (actual or '') if c.isdigit())
+            
+            # Remove leading zeros for comparison
+            expected_digits = digits.lstrip('0') or '0'
+            actual_clean = actual_digits.lstrip('0') or '0'
+            
+            if actual_clean == expected_digits:
+                self.logger.info(f"{field_name}: Filled with '{actual}' (value: {digits})")
+                return True
+            else:
+                self.logger.warning(f"{field_name}: Value mismatch. Expected '{digits}', got '{actual_digits}'")
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"{field_name}: Failed to fill masked equity input - {e}")
+            return False
+
+    def fill_autocomplete_input(self, input_selector: str, dropdown_selector: str, 
+                                 item_selector: str, value: str, field_name: str = None,
+                                 delay_ms: int = 150) -> bool:
+        """
+        Fill an autocomplete/typeahead input field.
+        
+        Types the value slowly to trigger the autocomplete dropdown, waits for
+        dropdown to appear, then selects the option using keyboard.
+        
+        Args:
+            input_selector: CSS selector for the input field
+            dropdown_selector: CSS selector for the autocomplete dropdown container
+            item_selector: CSS selector for the dropdown items (not used, kept for compatibility)
+            value: Value to type (e.g., '7311' for SIC code)
+            field_name: Friendly name for logging
+            delay_ms: Delay between keystrokes in milliseconds (default: 150ms)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        field_name = field_name or input_selector[:40]
+        
+        if not value:
+            self.logger.debug(f"{field_name}: Skipped (empty value)")
+            return True
+        
+        try:
+            self.wait_for_element(input_selector, timeout=self.SHORT_TIMEOUT)
+            
+            # Click to focus the field
+            self.page.click(input_selector)
+            time.sleep(0.1)
+            
+            # Clear existing content
+            self.page.locator(input_selector).clear()
+            time.sleep(0.1)
+            
+            # Type each character slowly to trigger autocomplete
+            for char in value:
+                self.page.keyboard.press(char)
+                time.sleep(delay_ms / 1000)
+            
+            # Wait 1 second for dropdown to fully populate
+            time.sleep(1)
+            
+            # Wait for the dropdown to be visible
+            try:
+                self.page.wait_for_selector(dropdown_selector, state="visible", timeout=2000)
+            except TimeoutError:
+                self.logger.warning(f"{field_name}: Autocomplete dropdown did not appear")
+                return False
+            
+            # Select using keyboard - ArrowDown to highlight first item, Enter to select
+            self.page.keyboard.press("ArrowDown")
+            time.sleep(0.1)
+            self.page.keyboard.press("Enter")
+            time.sleep(0.3)
+            
+            # Verify selection by checking input value
+            actual = self.get_text_value(input_selector)
+            if actual and value in actual:
+                self.logger.info(f"{field_name}: Selected '{actual}' from autocomplete")
+                return True
+            
+            self.logger.info(f"{field_name}: Autocomplete selection completed (value: {actual})")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"{field_name}: Failed to fill autocomplete input - {e}")
+            return False
     
     # =========================================================================
     # DROPDOWN UTILITIES

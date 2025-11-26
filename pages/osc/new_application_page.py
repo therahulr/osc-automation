@@ -5,6 +5,11 @@ Sections:
 - Application Information
 - Corporate Information  
 - Location Information
+- Tax Information
+- Owner/Officer 1 & 2
+- Trade Reference
+- General Underwriting
+- Product Selection (Credit Card, Debit Card, ACH)
 """
 
 from playwright.sync_api import Page, TimeoutError
@@ -16,8 +21,21 @@ from locators.osc_locators import (
     ApplicationInformationLocators,
     CorporateInformationLocators,
     LocationInformationLocators,
+    TaxInformationLocators,
+    Owner1Locators,
+    Owner2Locators,
+    TradeReferenceLocators,
+    GeneralUnderwritingLocators,
+    NewApplicationPageLocators,
+    ServiceSelectionLocators,
+    PinDebitInterchangeLocators,
+    ACHSectionLocators,
 )
-from data.osc.osc_data import APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO
+from data.osc.osc_data import (
+    APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO,
+    TAX_INFO, OWNER1_INFO, OWNER2_INFO,
+    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO
+)
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
 
@@ -28,6 +46,309 @@ class NewApplicationPage(BasePage):
     def __init__(self, page: Page):
         super().__init__(page)
         self.locators = ApplicationInformationLocators
+
+    
+    # =========================================================================
+    # PRODUCT SELECTION SECTION
+    # =========================================================================
+
+    @performance_step("scroll_to_application_info")
+    @log_step
+    def scroll_to_application_info(self) -> bool:
+        """
+        Scroll to the Application Information section header.
+        
+        Returns:
+            bool: True if scroll successful, False otherwise
+        """
+        try:
+            section_header = ApplicationInformationLocators.SECTION_TITLE
+            self.page.locator(section_header).scroll_into_view_if_needed()
+            time.sleep(0.3)
+            self.logger.info("Scrolled to Application Information section")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to scroll to Application Information: {e}")
+            return False
+
+    @performance_step("select_credit_card_product")
+    @log_step
+    def select_credit_card_product(self) -> bool:
+        """
+        Select the Credit Card product and verify the section loads.
+        
+        Clicks the Credit Card product button, waits for page reload,
+        and verifies the Credit Card Services header is visible.
+        
+        Returns:
+            bool: True if product selected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Selecting Credit Card product...")
+        
+        try:
+            # Step 1: Click the Credit Card product button
+            self.logger.info("Step 1: Clicking Credit Card product button")
+            self.page.click(loc.PRODUCT_BTN_CREDIT_CARD)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify Credit Card Services section header is visible
+            self.logger.info("Step 3: Verifying Credit Card Services section is visible")
+            verification_selector = f"#{ServiceSelectionLocators.CREDIT_CARD_SERVICES_HEADER_TEXT}"
+            
+            try:
+                self.page.wait_for_selector(verification_selector, state="visible", timeout=5000)
+                self.logger.info("✅ Credit Card product selected successfully - Credit Card Services section visible")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            except TimeoutError:
+                self.logger.error("Credit Card Services section not visible after selection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to select Credit Card product: {e}")
+            return False
+
+    @performance_step("select_debit_card_product")
+    @log_step
+    def select_debit_card_product(self) -> bool:
+        """
+        Select the Debit Card product and verify the section loads.
+        
+        Clicks the Debit Card product button, waits for page reload,
+        and verifies the PIN Debit Interchange dropdown is visible.
+        
+        Returns:
+            bool: True if product selected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Selecting Debit Card product...")
+        
+        try:
+            # Step 1: Click the Debit Card product button
+            self.logger.info("Step 1: Clicking Debit Card product button")
+            self.page.click(loc.PRODUCT_BTN_DEBIT_CARD)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify PIN Debit Interchange dropdown is visible
+            self.logger.info("Step 3: Verifying PIN Debit Interchange section is visible")
+            verification_selector = PinDebitInterchangeLocators.PIN_DEBIT_INTERCHANGE_TYPE_DROPDOWN
+            
+            try:
+                # Scroll to the dropdown to verify it exists
+                dropdown = self.page.locator(verification_selector)
+                dropdown.scroll_into_view_if_needed()
+                self.page.wait_for_selector(verification_selector, state="visible", timeout=5000)
+                self.logger.info("✅ Debit Card product selected successfully - PIN Debit Interchange section visible")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            except TimeoutError:
+                self.logger.error("PIN Debit Interchange section not visible after selection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to select Debit Card product: {e}")
+            return False
+
+    @performance_step("select_ach_product")
+    @log_step
+    def select_ach_product(self) -> bool:
+        """
+        Select the ACH product and verify the section loads.
+        
+        Clicks the ACH product button, waits for page reload,
+        and verifies the ACH section header is visible.
+        
+        Returns:
+            bool: True if product selected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Selecting ACH product...")
+        
+        try:
+            # Step 1: Click the ACH product button
+            self.logger.info("Step 1: Clicking ACH product button")
+            self.page.click(loc.PRODUCT_BTN_ACH)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify ACH section header is visible
+            self.logger.info("Step 3: Verifying ACH section header is visible")
+            verification_selector = ACHSectionLocators.STEP_ACH_HEADER
+            
+            try:
+                self.page.wait_for_selector(verification_selector, state="visible", timeout=5000)
+                self.logger.info("✅ ACH product selected successfully - ACH section visible")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            except TimeoutError:
+                self.logger.error("ACH section header not visible after selection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to select ACH product: {e}")
+            return False
+
+    @performance_step("deselect_credit_card_product")
+    @log_step
+    def deselect_credit_card_product(self) -> bool:
+        """
+        Deselect the Credit Card product and verify the section is removed from DOM.
+        
+        Clicks the Credit Card product button again to deselect, waits for page reload,
+        and verifies the Credit Card Services header is NOT present in DOM.
+        
+        Returns:
+            bool: True if product deselected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Deselecting Credit Card product...")
+        
+        try:
+            # Step 1: Click the Credit Card product button to deselect
+            self.logger.info("Step 1: Clicking Credit Card product button to deselect")
+            self.page.click(loc.PRODUCT_BTN_CREDIT_CARD)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify Credit Card Services section is NOT in DOM
+            self.logger.info("Step 3: Verifying Credit Card Services section is removed from DOM")
+            verification_selector = f"#{ServiceSelectionLocators.CREDIT_CARD_SERVICES_HEADER_TEXT}"
+            
+            # Check element count is 0 (not present in DOM)
+            element_count = self.page.locator(verification_selector).count()
+            
+            if element_count == 0:
+                self.logger.info("✅ Credit Card product deselected successfully - section removed from DOM")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            else:
+                self.logger.error("Credit Card Services section still present in DOM after deselection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to deselect Credit Card product: {e}")
+            return False
+
+    @performance_step("deselect_debit_card_product")
+    @log_step
+    def deselect_debit_card_product(self) -> bool:
+        """
+        Deselect the Debit Card product and verify the section is removed from DOM.
+        
+        Clicks the Debit Card product button again to deselect, waits for page reload,
+        and verifies the PIN Debit Interchange dropdown is NOT present in DOM.
+        
+        Returns:
+            bool: True if product deselected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Deselecting Debit Card product...")
+        
+        try:
+            # Step 1: Click the Debit Card product button to deselect
+            self.logger.info("Step 1: Clicking Debit Card product button to deselect")
+            self.page.click(loc.PRODUCT_BTN_DEBIT_CARD)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify PIN Debit Interchange section is NOT in DOM
+            self.logger.info("Step 3: Verifying PIN Debit Interchange section is removed from DOM")
+            verification_selector = PinDebitInterchangeLocators.PIN_DEBIT_INTERCHANGE_TYPE_DROPDOWN
+            
+            # Check element count is 0 (not present in DOM)
+            element_count = self.page.locator(verification_selector).count()
+            
+            if element_count == 0:
+                self.logger.info("✅ Debit Card product deselected successfully - section removed from DOM")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            else:
+                self.logger.error("PIN Debit Interchange section still present in DOM after deselection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to deselect Debit Card product: {e}")
+            return False
+
+    @performance_step("deselect_ach_product")
+    @log_step
+    def deselect_ach_product(self) -> bool:
+        """
+        Deselect the ACH product and verify the section is removed from DOM.
+        
+        Clicks the ACH product button again to deselect, waits for page reload,
+        and verifies the ACH section header is NOT present in DOM.
+        
+        Returns:
+            bool: True if product deselected and verified, False otherwise
+        """
+        loc = NewApplicationPageLocators
+        
+        self.logger.info("Deselecting ACH product...")
+        
+        try:
+            # Step 1: Click the ACH product button to deselect
+            self.logger.info("Step 1: Clicking ACH product button to deselect")
+            self.page.click(loc.PRODUCT_BTN_ACH)
+            
+            # Step 2: Wait for page reload (dynamic wait, max 5 seconds)
+            self.logger.info("Step 2: Waiting for page to reload...")
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+            
+            # Step 3: Verify ACH section header is NOT in DOM
+            self.logger.info("Step 3: Verifying ACH section header is removed from DOM")
+            verification_selector = ACHSectionLocators.STEP_ACH_HEADER
+            
+            # Check element count is 0 (not present in DOM)
+            element_count = self.page.locator(verification_selector).count()
+            
+            if element_count == 0:
+                self.logger.info("✅ ACH product deselected successfully - section removed from DOM")
+                
+                # Step 4: Scroll back to Application Information section
+                self.scroll_to_application_info()
+                
+                return True
+            else:
+                self.logger.error("ACH section header still present in DOM after deselection")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to deselect ACH product: {e}")
+            return False
         
     @performance_step("verify_application_info_section")
     @log_step
@@ -114,109 +435,6 @@ class NewApplicationPage(BasePage):
         
         return results
     
-    @performance_step("select_dropdown_option")
-    @log_step
-    def select_dropdown_option(self, dropdown_selector: str, option_text: str, field_name: str) -> bool:
-        """
-        Select an option from a dropdown by text value with robust error handling
-        
-        Args:
-            dropdown_selector: CSS selector for the dropdown
-            option_text: Text of the option to select
-            field_name: Name of the field for logging
-            
-        Returns:
-            bool: True if selection successful, False otherwise
-        """
-        try:
-            # Wait for dropdown to be available
-            self.page.wait_for_selector(dropdown_selector, timeout=5000)
-            
-            # First, get available options to verify the option exists
-            available_options = self.get_available_dropdown_options(dropdown_selector, field_name)
-            
-            # Check if the exact option exists
-            if option_text not in available_options:
-                self.logger.warning(f"{field_name} option '{option_text}' not found in available options: {available_options}")
-                
-                # Try to find a partial match (case-insensitive)
-                partial_matches = [opt for opt in available_options if option_text.lower() in opt.lower()]
-                if partial_matches:
-                    option_text = partial_matches[0]
-                    self.logger.info(f"Using partial match for {field_name}: '{option_text}'")
-                else:
-                    self.logger.error(f"No suitable option found for {field_name}")
-                    return False
-            
-            # Select the option by text
-            self.page.select_option(dropdown_selector, label=option_text)
-            
-            # Small delay to ensure selection is processed
-            time.sleep(0.5)
-            
-            # Verify selection by checking the selected option
-            selected_element = self.page.locator(f"{dropdown_selector} option:checked")
-            if selected_element.count() > 0:
-                selected_text = selected_element.text_content()
-                self.logger.info(f"{field_name} selected successfully: '{selected_text}'")
-                return True
-            else:
-                # Alternative verification: check the value of the select element
-                try:
-                    current_value = self.page.locator(dropdown_selector).input_value()
-                    selected_option = self.page.locator(f"{dropdown_selector} option[value='{current_value}']")
-                    if selected_option.count() > 0:
-                        selected_text = selected_option.text_content()
-                        self.logger.info(f"{field_name} selected successfully (alt method): '{selected_text}'")
-                        return True
-                except Exception:
-                    pass
-                
-                self.logger.error(f"Failed to verify {field_name} selection - no option marked as selected")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Failed to select {field_name} option '{option_text}': {e}")
-            return False
-    
-    @performance_step("fill_text_field")
-    @log_step
-    def fill_text_field(self, field_selector: str, text_value: str, field_name: str) -> bool:
-        """
-        Fill a text input field
-        
-        Args:
-            field_selector: CSS selector for the input field
-            text_value: Text to fill in the field
-            field_name: Name of the field for logging
-            
-        Returns:
-            bool: True if filling successful, False otherwise
-        """
-        try:
-            if not text_value:  # Skip empty values
-                self.logger.info(f"{field_name} field skipped (empty value)")
-                return True
-                
-            # Wait for field to be available
-            self.page.wait_for_selector(field_selector, timeout=5000)
-            
-            # Clear and fill the field
-            self.page.fill(field_selector, text_value)
-            
-            # Verify the text was entered
-            filled_value = self.page.locator(field_selector).input_value()
-            if filled_value == text_value:
-                self.logger.info(f"{field_name} filled successfully: {text_value}")
-                return True
-            else:
-                self.logger.warning(f"{field_name} value mismatch. Expected: {text_value}, Got: {filled_value}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Failed to fill {field_name} field: {e}")
-            return False
-    
     @performance_step("fill_application_information")
     @log_step
     def fill_application_information(self, app_data: Optional[Dict[str, Any]] = None) -> Dict[str, bool]:
@@ -245,36 +463,36 @@ class NewApplicationPage(BasePage):
         display_results = self.verify_display_fields(app_data)
         results.update(display_results)
         
-        # Fill Association dropdown
-        results["association"] = self.select_dropdown_option(
+        # Fill Association dropdown (using base class method)
+        results["association"] = self.select_dropdown_by_text(
             self.locators.ASSOCIATION_DROPDOWN,
             app_data["association"],
             "Association"
         )
         
-        # Fill Lead Source dropdown
-        results["lead_source"] = self.select_dropdown_option(
+        # Fill Lead Source dropdown (using base class method)
+        results["lead_source"] = self.select_dropdown_by_text(
             self.locators.LEAD_SOURCE_DROPDOWN,
             app_data["lead_source"],
             "Lead Source"
         )
         
-        # Fill Referral Partner dropdown
-        results["referral_partner"] = self.select_dropdown_option(
+        # Fill Referral Partner dropdown (using base class method)
+        results["referral_partner"] = self.select_dropdown_by_text(
             self.locators.REFERRAL_PARTNER_DROPDOWN,
             app_data["referral_partner"],
             "Referral Partner"
         )
         
-        # Fill Promo Code (if provided)
-        results["promo_code"] = self.fill_text_field(
+        # Fill Promo Code (using base class method)
+        results["promo_code"] = self.fill_text(
             self.locators.PROMO_CODE_INPUT,
             app_data.get("promo_code", ""),
             "Promo Code"
         )
         
-        # Fill Corporate Atlas ID (if provided)
-        results["corporate_atlas_id"] = self.fill_text_field(
+        # Fill Corporate Atlas ID (using base class method)
+        results["corporate_atlas_id"] = self.fill_text(
             self.locators.CORP_ATLAS_ID_INPUT,
             app_data.get("corporate_atlas_id", ""),
             "Corporate Atlas ID"
@@ -294,55 +512,22 @@ class NewApplicationPage(BasePage):
         
         return results
     
-    @performance_step("get_available_dropdown_options")
-    @log_step
-    def get_available_dropdown_options(self, dropdown_selector: str, field_name: str) -> list:
-        """
-        Get all available options from a dropdown
-        
-        Args:
-            dropdown_selector: CSS selector for the dropdown
-            field_name: Name of the field for logging
-            
-        Returns:
-            list: List of available option texts
-        """
-        try:
-            self.page.wait_for_selector(dropdown_selector, timeout=5000)
-            
-            # Get all option elements
-            options = self.page.locator(f"{dropdown_selector} option").all()
-            option_texts = [option.text_content() for option in options if option.text_content()]
-            
-            self.logger.info(f"{field_name} available options: {option_texts}")
-            return option_texts
-            
-        except Exception as e:
-            self.logger.error(f"Failed to get {field_name} options: {e}")
-            return []
-    
     @performance_step("get_all_available_options")
     @log_step
     def get_all_available_options(self) -> Dict[str, list]:
         """
-        Get all available options from all dropdowns for analysis
+        Get all available options from all dropdowns for analysis.
+        Uses base class get_dropdown_options method.
         
         Returns:
             Dict[str, list]: Dictionary mapping field names to their available options
         """
         options = {}
         
-        options["association"] = self.get_available_dropdown_options(
-            self.locators.ASSOCIATION_DROPDOWN, "Association"
-        )
-        
-        options["lead_source"] = self.get_available_dropdown_options(
-            self.locators.LEAD_SOURCE_DROPDOWN, "Lead Source"
-        )
-        
-        options["referral_partner"] = self.get_available_dropdown_options(
-            self.locators.REFERRAL_PARTNER_DROPDOWN, "Referral Partner"
-        )
+        # Using base class get_dropdown_options method
+        options["association"] = self.get_dropdown_options(self.locators.ASSOCIATION_DROPDOWN)
+        options["lead_source"] = self.get_dropdown_options(self.locators.LEAD_SOURCE_DROPDOWN)
+        options["referral_partner"] = self.get_dropdown_options(self.locators.REFERRAL_PARTNER_DROPDOWN)
         
         return options
 
@@ -621,3 +806,579 @@ class NewApplicationPage(BasePage):
         self.logger.info(f"Location Information: {success_count}/{total_count} fields successful")
         
         return results
+
+    # =========================================================================
+    # TAX INFORMATION SECTION
+    # =========================================================================
+    
+    @performance_step("fill_tax_information")
+    @log_step
+    def fill_tax_information_section(self, tax_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the Tax Information section of the application.
+        
+        Args:
+            tax_data: Dictionary containing tax information. Defaults to TAX_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = tax_data or TAX_INFO
+        results = {}
+        loc = TaxInformationLocators
+        
+        self.logger.info("Filling Tax Information section...")
+        
+        # Federal Tax ID (masked input - 9 digits)
+        results["federal_tax_id"] = self.fill_masked_input(
+            loc.FEDERAL_TAX_ID_INPUT,
+            data.get("federal_tax_id", ""),
+            "Federal Tax ID"
+        )
+        
+        # Tax Filing Corporation Name
+        results["tax_filing_corp_name"] = self.fill_text(
+            loc.TAX_FILING_CORP_NAME_INPUT,
+            data.get("tax_filing_corp_name", ""),
+            "Tax Filing Corp Name"
+        )
+        
+        # Ownership Type dropdown
+        results["ownership_type"] = self.select_dropdown_by_text(
+            loc.OWNERSHIP_TYPE_DROPDOWN,
+            data.get("ownership_type", ""),
+            "Ownership Type"
+        )
+        
+        # Tax Filing State dropdown
+        results["tax_filing_state"] = self.select_dropdown_by_text(
+            loc.TAX_FILING_STATE_DROPDOWN,
+            data.get("tax_filing_state", ""),
+            "Tax Filing State"
+        )
+        
+        # Checkboxes
+        # Location is Corporate Headquarters
+        if data.get("is_corp_headquarters", False):
+            results["is_corp_headquarters"] = self.set_checkbox(
+                loc.LOCATION_IS_CORP_HQ_CHECKBOX,
+                True,
+                "Location is Corp HQ"
+            )
+        else:
+            results["is_corp_headquarters"] = True  # Skip if not needed
+        
+        # Foreign Entity checkbox
+        if data.get("is_foreign_entity", False):
+            results["is_foreign_entity"] = self.set_checkbox(
+                loc.FOREIGN_ENTITY_CHECKBOX,
+                True,
+                "Foreign Entity"
+            )
+        else:
+            results["is_foreign_entity"] = True  # Skip if not checked
+        
+        # Authorize 1099 checkbox
+        if data.get("authorize_1099", True):
+            results["authorize_1099"] = self.set_checkbox(
+                loc.AUTHORIZE_1099_CHECKBOX,
+                True,
+                "Authorize 1099"
+            )
+        else:
+            results["authorize_1099"] = True  # Skip if not needed
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Tax Information: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # OWNER/OFFICER 1 SECTION
+    # =========================================================================
+    
+    @performance_step("fill_owner1_information")
+    @log_step
+    def fill_owner1_information_section(self, owner_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the Owner/Officer 1 section of the application.
+        
+        Args:
+            owner_data: Dictionary containing owner information. Defaults to OWNER1_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = owner_data or OWNER1_INFO
+        results = {}
+        loc = Owner1Locators
+        
+        self.logger.info("Filling Owner/Officer 1 section...")
+        
+        # Title
+        results["title"] = self.fill_text(
+            loc.TITLE_INPUT,
+            data.get("title", ""),
+            "Title"
+        )
+        
+        # First Name
+        results["first_name"] = self.fill_text(
+            loc.FIRST_NAME_INPUT,
+            data.get("first_name", ""),
+            "First Name"
+        )
+        
+        # Last Name
+        results["last_name"] = self.fill_text(
+            loc.LAST_NAME_INPUT,
+            data.get("last_name", ""),
+            "Last Name"
+        )
+        
+        # Address 1
+        results["address1"] = self.fill_text(
+            loc.ADDRESS1_INPUT,
+            data.get("address1", ""),
+            "Address 1"
+        )
+        
+        # Address 2 (optional)
+        address2 = data.get("address2", "")
+        if address2:
+            results["address2"] = self.fill_text(
+                loc.ADDRESS2_INPUT,
+                address2,
+                "Address 2"
+            )
+        else:
+            results["address2"] = True
+        
+        # City
+        results["city"] = self.fill_text(
+            loc.CITY_INPUT,
+            data.get("city", ""),
+            "City"
+        )
+        
+        # State dropdown
+        results["state"] = self.select_dropdown_by_text(
+            loc.STATE_DROPDOWN,
+            data.get("state", ""),
+            "State"
+        )
+        
+        # Zip Code
+        results["zip_code"] = self.fill_text(
+            loc.ZIP_INPUT,
+            data.get("zip_code", ""),
+            "Zip Code"
+        )
+        
+        # Country dropdown
+        results["country"] = self.select_dropdown_by_text(
+            loc.COUNTRY_DROPDOWN,
+            data.get("country", ""),
+            "Country"
+        )
+        
+        # Phone (masked input)
+        results["phone"] = self.fill_masked_input(
+            loc.PHONE_INPUT,
+            data.get("phone", ""),
+            "Phone"
+        )
+        
+        # Fax (masked input)
+        results["fax"] = self.fill_masked_input(
+            loc.FAX_INPUT,
+            data.get("fax", ""),
+            "Fax"
+        )
+        
+        # Email
+        results["email"] = self.fill_text(
+            loc.EMAIL_INPUT,
+            data.get("email", ""),
+            "Email"
+        )
+        
+        # Date of Birth (masked input dd/mm/yyyy)
+        results["dob"] = self.fill_masked_input(
+            loc.DOB_INPUT,
+            data.get("dob", ""),
+            "Date of Birth"
+        )
+        
+        # SSN (masked input)
+        results["ssn"] = self.fill_masked_input(
+            loc.SSN_INPUT,
+            data.get("ssn", ""),
+            "SSN"
+        )
+        
+        # Date of Ownership (masked input dd/mm/yyyy)
+        results["date_of_ownership"] = self.fill_masked_input(
+            loc.DATE_OF_OWNERSHIP_INPUT,
+            data.get("date_of_ownership", ""),
+            "Date of Ownership"
+        )
+        
+        # Equity percentage (masked input 0__)
+        results["equity"] = self.fill_masked_equity_input(
+            loc.EQUITY_INPUT,
+            data.get("equity", ""),
+            "Equity %"
+        )
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Owner/Officer 1: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # OWNER/OFFICER 2 SECTION
+    # =========================================================================
+    
+    @performance_step("fill_owner2_information")
+    @log_step
+    def fill_owner2_information_section(self, owner_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the Owner/Officer 2 section of the application.
+        
+        Args:
+            owner_data: Dictionary containing owner information. Defaults to OWNER2_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = owner_data or OWNER2_INFO
+        results = {}
+        loc = Owner2Locators
+        
+        self.logger.info("Filling Owner/Officer 2 section...")
+        
+        # Title
+        results["title"] = self.fill_text(
+            loc.TITLE_INPUT,
+            data.get("title", ""),
+            "Title"
+        )
+        
+        # First Name
+        results["first_name"] = self.fill_text(
+            loc.FIRST_NAME_INPUT,
+            data.get("first_name", ""),
+            "First Name"
+        )
+        
+        # Last Name
+        results["last_name"] = self.fill_text(
+            loc.LAST_NAME_INPUT,
+            data.get("last_name", ""),
+            "Last Name"
+        )
+        
+        # Address 1
+        results["address1"] = self.fill_text(
+            loc.ADDRESS1_INPUT,
+            data.get("address1", ""),
+            "Address 1"
+        )
+        
+        # Address 2 (optional)
+        address2 = data.get("address2", "")
+        if address2:
+            results["address2"] = self.fill_text(
+                loc.ADDRESS2_INPUT,
+                address2,
+                "Address 2"
+            )
+        else:
+            results["address2"] = True
+        
+        # City
+        results["city"] = self.fill_text(
+            loc.CITY_INPUT,
+            data.get("city", ""),
+            "City"
+        )
+        
+        # State dropdown
+        results["state"] = self.select_dropdown_by_text(
+            loc.STATE_DROPDOWN,
+            data.get("state", ""),
+            "State"
+        )
+        
+        # Zip Code
+        results["zip_code"] = self.fill_text(
+            loc.ZIP_INPUT,
+            data.get("zip_code", ""),
+            "Zip Code"
+        )
+        
+        # Country dropdown
+        results["country"] = self.select_dropdown_by_text(
+            loc.COUNTRY_DROPDOWN,
+            data.get("country", ""),
+            "Country"
+        )
+        
+        # Phone (masked input)
+        results["phone"] = self.fill_masked_input(
+            loc.PHONE_INPUT,
+            data.get("phone", ""),
+            "Phone"
+        )
+        
+        # Fax (masked input)
+        results["fax"] = self.fill_masked_input(
+            loc.FAX_INPUT,
+            data.get("fax", ""),
+            "Fax"
+        )
+        
+        # Email
+        results["email"] = self.fill_text(
+            loc.EMAIL_INPUT,
+            data.get("email", ""),
+            "Email"
+        )
+        
+        # Date of Birth (masked input dd/mm/yyyy)
+        results["dob"] = self.fill_masked_input(
+            loc.DOB_INPUT,
+            data.get("dob", ""),
+            "Date of Birth"
+        )
+        
+        # SSN (masked input)
+        results["ssn"] = self.fill_masked_input(
+            loc.SSN_INPUT,
+            data.get("ssn", ""),
+            "SSN"
+        )
+        
+        # Date of Ownership (masked input dd/mm/yyyy)
+        results["date_of_ownership"] = self.fill_masked_input(
+            loc.DATE_OF_OWNERSHIP_INPUT,
+            data.get("date_of_ownership", ""),
+            "Date of Ownership"
+        )
+        
+        # Equity percentage (masked input 0__)
+        results["equity"] = self.fill_masked_equity_input(
+            loc.EQUITY_INPUT,
+            data.get("equity", ""),
+            "Equity %"
+        )
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Owner/Officer 2: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # TRADE REFERENCE SECTION
+    # =========================================================================
+    
+    @performance_step("fill_trade_reference")
+    @log_step
+    def fill_trade_reference_section(self, trade_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the Trade Reference section of the application.
+        
+        Args:
+            trade_data: Dictionary containing trade reference information. Defaults to TRADE_REFERENCE_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = trade_data or TRADE_REFERENCE_INFO
+        results = {}
+        loc = TradeReferenceLocators
+        
+        self.logger.info("Filling Trade Reference section...")
+        
+        # Title
+        results["title"] = self.fill_text(
+            loc.TITLE_INPUT,
+            data.get("title", ""),
+            "Title"
+        )
+        
+        # Name
+        results["name"] = self.fill_text(
+            loc.NAME_INPUT,
+            data.get("name", ""),
+            "Name"
+        )
+        
+        # Address
+        results["address"] = self.fill_text(
+            loc.ADDRESS_INPUT,
+            data.get("address", ""),
+            "Address"
+        )
+        
+        # City
+        results["city"] = self.fill_text(
+            loc.CITY_INPUT,
+            data.get("city", ""),
+            "City"
+        )
+        
+        # State dropdown
+        results["state"] = self.select_dropdown_by_text(
+            loc.STATE_DROPDOWN,
+            data.get("state", ""),
+            "State"
+        )
+        
+        # Zip Code
+        results["zip_code"] = self.fill_text(
+            loc.ZIP_INPUT,
+            data.get("zip_code", ""),
+            "Zip Code"
+        )
+        
+        # Country dropdown
+        results["country"] = self.select_dropdown_by_text(
+            loc.COUNTRY_DROPDOWN,
+            data.get("country", ""),
+            "Country"
+        )
+        
+        # Phone (masked input)
+        results["phone"] = self.fill_masked_input(
+            loc.PHONE_INPUT,
+            data.get("phone", ""),
+            "Phone"
+        )
+        
+        # Email
+        results["email"] = self.fill_text(
+            loc.EMAIL_INPUT,
+            data.get("email", ""),
+            "Email"
+        )
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"Trade Reference: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    # =========================================================================
+    # GENERAL UNDERWRITING SECTION
+    # =========================================================================
+    
+    @performance_step("fill_general_underwriting")
+    @log_step
+    def fill_general_underwriting_section(self, underwriting_data: Dict = None) -> Dict[str, bool]:
+        """
+        Fill the General Underwriting section of the application.
+        
+        Args:
+            underwriting_data: Dictionary containing underwriting information. Defaults to GENERAL_UNDERWRITING_INFO.
+            
+        Returns:
+            Dict[str, bool]: Success status for each field.
+        """
+        data = underwriting_data or GENERAL_UNDERWRITING_INFO
+        results = {}
+        loc = GeneralUnderwritingLocators
+        
+        self.logger.info("Filling General Underwriting section...")
+        
+        # Business Type dropdown
+        results["business_type"] = self.select_dropdown_by_text(
+            loc.BUSINESS_TYPE_DROPDOWN,
+            data.get("business_type", ""),
+            "Business Type"
+        )
+        
+        # SIC Code (autocomplete input - type and select from dropdown)
+        results["sic_code"] = self.fill_autocomplete_input(
+            loc.SIC_CODE_INPUT,
+            loc.SIC_CODE_AUTOCOMPLETE_DROPDOWN,
+            loc.SIC_CODE_AUTOCOMPLETE_ITEM,
+            data.get("sic_code", ""),
+            "SIC Code"
+        )
+        
+        # Products Sold
+        results["products_sold"] = self.fill_text(
+            loc.PRODUCTS_SOLD_TEXTAREA,
+            data.get("products_sold", ""),
+            "Products Sold"
+        )
+        
+        # Return Policy dropdown
+        results["return_policy"] = self.select_dropdown_by_text(
+            loc.RETURN_POLICY_DROPDOWN,
+            data.get("return_policy", ""),
+            "Return Policy"
+        )
+        
+        # Days Until Product Delivery
+        days_until_delivery = data.get("days_until_delivery", "")
+        if days_until_delivery:
+            results["days_until_delivery"] = self.fill_text(
+                loc.DAYS_UNTIL_PRODUCT_DELIVERY_INPUT,
+                days_until_delivery,
+                "Days Until Delivery"
+            )
+        else:
+            results["days_until_delivery"] = True
+        
+        # Seasonal Months checkboxes
+        seasonal_months = data.get("seasonal_months", [])
+        
+        # Map month names to checkbox locators
+        month_checkbox_map = {
+            "january": loc.SEASONAL_MONTH_JANUARY_CHECKBOX,
+            "february": loc.SEASONAL_MONTH_FEBRUARY_CHECKBOX,
+            "march": loc.SEASONAL_MONTH_MARCH_CHECKBOX,
+            "april": loc.SEASONAL_MONTH_APRIL_CHECKBOX,
+            "may": loc.SEASONAL_MONTH_MAY_CHECKBOX,
+            "june": loc.SEASONAL_MONTH_JUNE_CHECKBOX,
+            "july": loc.SEASONAL_MONTH_JULY_CHECKBOX,
+            "august": loc.SEASONAL_MONTH_AUGUST_CHECKBOX,
+            "september": loc.SEASONAL_MONTH_SEPTEMBER_CHECKBOX,
+            "october": loc.SEASONAL_MONTH_OCTOBER_CHECKBOX,
+            "november": loc.SEASONAL_MONTH_NOVEMBER_CHECKBOX,
+            "december": loc.SEASONAL_MONTH_DECEMBER_CHECKBOX,
+        }
+        
+        # Check the seasonal months if provided
+        for month in seasonal_months:
+            month_lower = month.lower()
+            if month_lower in month_checkbox_map:
+                checkbox_selector = month_checkbox_map[month_lower]
+                results[f"seasonal_{month_lower}"] = self.set_checkbox(
+                    checkbox_selector,
+                    True,
+                    f"Seasonal {month.capitalize()}"
+                )
+        
+        # If no seasonal months, mark as success (skipped)
+        if not seasonal_months:
+            results["seasonal_months"] = True
+        
+        # Summary
+        success_count = sum(1 for r in results.values() if r)
+        total_count = len(results)
+        self.logger.info(f"General Underwriting: {success_count}/{total_count} fields successful")
+        
+        return results
+
+    

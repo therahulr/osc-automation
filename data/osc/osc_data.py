@@ -160,13 +160,14 @@ class DropdownOptions:
     
     # Business Type dropdown options
     BUSINESS_TYPE_OPTIONS = [
-        "Select business type",
         "Grocery",
         "GSA",
         "Hotel/Restaurant",
         "MOTO",
         "Retail"
     ]
+
+    SIC_CODE_LIST = ['7311', '7321', '3030']
     
     # Return Policy dropdown options
     RETURN_POLICY_OPTIONS = [
@@ -177,6 +178,24 @@ class DropdownOptions:
         "90 Days Money Back Guarantee",
         "90 Days Exchange Only",
         "Other"
+    ]
+    
+    # Tax Filing State dropdown options (same as STATE_OPTIONS)
+    TAX_FILING_STATE_OPTIONS = STATE_OPTIONS
+    
+    # Owner/Officer Title options
+    TITLE_OPTIONS = [
+        "CEO",
+        "CFO",
+        "COO",
+        "President",
+        "Vice President",
+        "Owner",
+        "Partner",
+        "Manager",
+        "Director",
+        "Secretary",
+        "Treasurer"
     ]
 
 
@@ -207,6 +226,39 @@ def generate_random_date_past(years_back: int = 10) -> str:
 def generate_dunns_number() -> str:
     """Generate a random 9-digit D&B number"""
     return ''.join([str(random.randint(0, 9)) for _ in range(9)])
+
+
+def generate_federal_tax_id() -> str:
+    """Generate a 9-digit Federal Tax ID (EIN) as digits only for masked input"""
+    # EIN format: XX-XXXXXXX, but for masked input we send digits only
+    return ''.join([str(random.randint(0, 9)) for _ in range(9)])
+
+
+def generate_ssn_digits() -> str:
+    """Generate a 9-digit SSN as digits only for masked input"""
+    # SSN format: XXX-XX-XXXX, but for masked input we send digits only
+    # Avoid invalid SSN patterns (000, 666, 900-999 for first group)
+    first = random.randint(100, 665)
+    if first == 666:
+        first = 667
+    second = random.randint(1, 99)
+    third = random.randint(1, 9999)
+    return f"{first:03d}{second:02d}{third:04d}"
+
+
+def generate_dob_digits(min_age: int = 25, max_age: int = 65) -> str:
+    """Generate date of birth as digits only (ddmmyyyy for masked input)"""
+    dob = faker.date_of_birth(minimum_age=min_age, maximum_age=max_age)
+    # Return digits only for masked input fields (dd/mm/yyyy mask)
+    return dob.strftime("%d%m%Y")
+
+
+def generate_date_of_ownership_digits(years_back: int = 10) -> str:
+    """Generate date of ownership as digits only (ddmmyyyy for masked input)"""
+    days_back = random.randint(365, years_back * 365)
+    ownership_date = datetime.now() - timedelta(days=days_back)
+    # Return digits only for masked input fields (dd/mm/yyyy mask)
+    return ownership_date.strftime("%d%m%Y")
 
 
 # =====================================================
@@ -249,6 +301,111 @@ LOCATION_INFO = {
     "business_open_date": generate_random_date_past(years_back=15),
     "existing_sage_mid": "",  # Optional - leave empty for new merchants
     "general_comments": faker.sentence(nb_words=10),
+}
+
+
+# =====================================================
+# TAX INFORMATION DATA
+# =====================================================
+TAX_INFO = {
+    "federal_tax_id": generate_federal_tax_id(),
+    "tax_filing_corp_name": faker.company() + " Holdings Inc",
+    "ownership_type": random.choice([
+        "C Corporation",
+        "S Corporation",
+        "LLC- C Corp",
+        "LLC- S Corp",
+        "Sole Proprietor"
+    ]),
+    "tax_filing_state": "Georgia",
+    # Checkboxes
+    "is_corp_headquarters": True,
+    "is_foreign_entity": False,
+    "authorize_1099": True,
+}
+
+
+# =====================================================
+# OWNER EQUITY CALCULATION (Must sum to 100)
+# =====================================================
+# Generate Owner1 equity between 20-90, Owner2 gets the remainder
+_owner1_equity = random.randint(20, 90)
+_owner2_equity = 100 - _owner1_equity
+
+
+# =====================================================
+# OWNER/OFFICER 1 INFORMATION DATA
+# =====================================================
+OWNER1_INFO = {
+    "title": random.choice(DropdownOptions.TITLE_OPTIONS),
+    "first_name": faker.first_name(),
+    "last_name": faker.last_name(),
+    "address1": faker.street_address(),
+    "address2": faker.secondary_address(),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    "fax": generate_fax_digits(),
+    "email": faker.email(),
+    "dob": generate_dob_digits(min_age=25, max_age=65),
+    "ssn": generate_ssn_digits(),
+    "date_of_ownership": generate_date_of_ownership_digits(years_back=10),
+    "equity": str(_owner1_equity),  # Owner1 equity (20-90)
+}
+
+
+# =====================================================
+# OWNER/OFFICER 2 INFORMATION DATA
+# =====================================================
+OWNER2_INFO = {
+    "title": random.choice(DropdownOptions.TITLE_OPTIONS),
+    "first_name": faker.first_name(),
+    "last_name": faker.last_name(),
+    "address1": faker.street_address(),
+    "address2": faker.secondary_address(),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    "fax": generate_fax_digits(),
+    "email": faker.email(),
+    "dob": generate_dob_digits(min_age=25, max_age=65),
+    "ssn": generate_ssn_digits(),
+    "date_of_ownership": generate_date_of_ownership_digits(years_back=10),
+    "equity": str(_owner2_equity),  # Owner2 equity (100 - Owner1)
+}
+
+
+# =====================================================
+# TRADE REFERENCE INFORMATION DATA
+# =====================================================
+TRADE_REFERENCE_INFO = {
+    "title": random.choice(["Vendor", "Supplier", "Partner", "Contractor", "Distributor"]),
+    "name": faker.company(),
+    "address": faker.street_address(),
+    "city": "Atlanta",
+    "state": "Georgia",
+    "zip_code": "30309",
+    "country": "United States",
+    "phone": generate_phone_digits(),
+    "email": faker.company_email(),
+}
+
+
+# =====================================================
+# GENERAL UNDERWRITING INFORMATION DATA
+# =====================================================
+GENERAL_UNDERWRITING_INFO = {
+    "business_type": random.choice(DropdownOptions.BUSINESS_TYPE_OPTIONS[1:]),  # Skip "Select business type"
+    "sic_code": random.choice(DropdownOptions.SIC_CODE_LIST),
+    "products_sold": faker.sentence(nb_words=20),
+    "return_policy": random.choice(DropdownOptions.RETURN_POLICY_OPTIONS),
+    "days_until_delivery": str(random.randint(1, 30)),
+    # Seasonal months - list of months to check (empty list = no seasonal business)
+    "seasonal_months": [],  # e.g., ["january", "february", "december"]
 }
 
 

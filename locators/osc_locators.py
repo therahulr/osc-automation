@@ -359,6 +359,31 @@ class LocationInformationLocators:
         "/option[text()='{}']"
     )
 
+
+class TaxInformationLocators:
+    """Tax Information section locators"""
+    
+    # Section Header
+    SECTION_TITLE = "//span[contains(text(), 'Tax Information')]"
+    
+    # Federal Tax ID (masked input)
+    FEDERAL_TAX_ID_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_txtFedTaxID"
+    
+    # Tax Filing Corporation Name
+    TAX_FILING_CORP_NAME_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_txtTaxFilCorp"
+    
+    # Ownership Type dropdown
+    OWNERSHIP_TYPE_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_ddlCorpType"
+    
+    # Tax Filing State dropdown
+    TAX_FILING_STATE_DROPDOWN = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_ddlTaxFilState"
+    
+    # Checkboxes
+    LOCATION_IS_CORP_HQ_CHECKBOX = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_ckbCorpHead"
+    FOREIGN_ENTITY_CHECKBOX = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_ckbCertForeign"
+    AUTHORIZE_1099_CHECKBOX = "#ctl00_ContentPlaceHolder1_ctrlApplicationTaxInfo1_FormView1_ckbAuth"
+
+
 class Owner1Locators:
     TITLE_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationOwner1_FormView1_txtOwnerTitle"
     FIRST_NAME_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationOwner1_FormView1_txtOwnerFName"
@@ -416,6 +441,10 @@ class GeneralUnderwritingLocators:
     SIC_CODE_INPUT = (
         "#ctl00_ContentPlaceHolder1_ctrlApplicationUnderwriting1_FormView1_txtSICCode"
     )
+    
+    # SIC Code autocomplete dropdown (jQuery UI autocomplete)
+    SIC_CODE_AUTOCOMPLETE_DROPDOWN = "ul.ui-autocomplete"
+    SIC_CODE_AUTOCOMPLETE_ITEM = "ul.ui-autocomplete li.ui-menu-item div.ui-menu-item-wrapper"
 
     PRODUCTS_SOLD_TEXTAREA = (
         "#ctl00_ContentPlaceHolder1_ctrlApplicationUnderwriting1_FormView1_txtProduct"
@@ -545,17 +574,16 @@ class BankInformationLocators:
     BANK_PHONE_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtPhoneNumber"
 
     # ---- Depository Account (Credit) ----
-    CREDIT_ROUTING_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtCreditRoutingNumber"
-    CREDIT_ACCOUNT_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtCreditAccountNumber"
-    CREDIT_ROUTING_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyCreditRouting"
-    CREDIT_ACCOUNT_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyCreditAccount"
+    DEPOSITORY_ROUTING_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtCreditRoutingNumber"
+    DEPOSITORY_ACCOUNT_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtCreditAccountNumber"
+    DEPOSITORY_ROUTING_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyCreditRouting"
+    DEPOSITORY_ACCOUNT_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyCreditAccount"
 
-    # ---- Fee Account (Debit) ----
-    DEBIT_ROUTING_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtDebitRoutingNumber"
-    DEBIT_ACCOUNT_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtDebitAccountNumber"
-    DEBIT_ROUTING_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyDebitRouting"
-    DEBIT_ACCOUNT_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyDebitAccount"
-
+    # ---- Fee Account (Debit) ----     
+    FEE_ROUTING_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtDebitRoutingNumber"
+    FEE_NUMBER_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtDebitAccountNumber"
+    FEE_ROUTING_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyDebitRouting"
+    FEE_VERIFY_INPUT = "#ctl00_ContentPlaceHolder1_ctrlApplicationBank1_FormView1_txtVerifyDebitAccount"
 
 class CreditCardInformationLocators:
 
@@ -584,6 +612,8 @@ class ServiceSelectionLocators:
     Locators for the Service Selection section of the application.
     Pass in the service name to get the corresponding checkbox locator.
     """
+
+    CREDIT_CARD_SERVICES_HEADER_TEXT = "ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_Label3"
     def SERVICE_CHECKBOX_LOCATOR(service_name: str) -> str:
         return (
             f"//table[@id='ctl00_ContentPlaceHolder1_ctrlApplicationCredit1_GridView1']"
