@@ -171,15 +171,55 @@ SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
 }
 
 
+# =====================================================
+# TERMINAL QUANTITIES
+# Define how many of each terminal type to add
+# Set quantity to 0 to skip that terminal type
+# Maps directly to terminal configuration variables
+# =====================================================
+TERMINAL_QUANTITIES: List[tuple] = [
+    (SAGE_50_TERMINAL, 1),
+    (SAGE_VIRTUAL_TERMINAL, 2),
+]
+
+
+def build_terminal_list() -> List[Dict[str, Any]]:
+    """
+    Build the terminal list based on TERMINAL_QUANTITIES.
+    
+    Each terminal config is copied (not referenced) so that random values
+    generated at runtime are unique per instance.
+    
+    Returns:
+        List of terminal configurations to add
+        
+    Example:
+        TERMINAL_QUANTITIES = [
+            (SAGE_50_TERMINAL, 5),
+            (SAGE_VIRTUAL_TERMINAL, 10),
+        ]
+        # Returns list of 15 terminal configs (5 SAGE_50 + 10 SAGE_VIRTUAL)
+    """
+    terminals: List[Dict[str, Any]] = []
+    
+    for terminal_config, quantity in TERMINAL_QUANTITIES:
+        if quantity <= 0:
+            continue
+        
+        for i in range(quantity):
+            # Create a copy so each instance is independent
+            # Random values will be generated at runtime in complete_step_3()
+            terminal_copy = terminal_config.copy()
+            terminals.append(terminal_copy)
+    
+    return terminals
 
 
 # =====================================================
 # TERMINALS TO ADD
-# List of terminal configurations to process
+# Built dynamically from TERMINAL_QUANTITIES
 # =====================================================
-TERMINALS_TO_ADD: List[Dict[str, Any]] = [
-    SAGE_50_TERMINAL, SAGE_VIRTUAL_TERMINAL
-]
+TERMINALS_TO_ADD: List[Dict[str, Any]] = build_terminal_list()
 
 
 # =====================================================
