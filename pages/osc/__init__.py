@@ -19,6 +19,7 @@ from pages.osc.base_page import OSCBasePage, BasePage
 from pages.osc.login_page import LoginPage
 from pages.osc.navigation_steps import NavigationSteps
 from pages.osc.new_application_page import NewApplicationPage
+from pages.osc.add_terminal_page import AddTerminalPage
 from pages.osc.wizard_helpers import WizardNavigator, TerminalWizard, AddOnWizard
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "LoginPage",
     "NavigationSteps",
     "NewApplicationPage",
+    "AddTerminalPage",
     
     # Wizard helpers
     "WizardNavigator",

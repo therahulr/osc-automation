@@ -19,6 +19,7 @@ This script automates the full merchant creation process:
 15. Fill Credit Card Services
 16. Fill Credit Card Underwriting
 17. Fill Credit Card Interchange
+18. Add Terminal (Wizard Step 1)
 
 BENEFITS:
 - Uses UIAutomationCore for automatic browser/logging management
@@ -388,6 +389,26 @@ def create_credit_card_merchant():
 
         core.take_screenshot("credit_card_interchange_completed")
 
+        # ==================== Step 18: Add Terminal (Wizard Step 1) ====================
+        log_step("Step 18: Adding Terminal(s) - Wizard Step 1")
+        
+        # Add terminals using NewApplicationPage (delegates to AddTerminalPage internally)
+        terminal_wizard_results = new_app_page.add_terminals()
+        
+        all_results["terminal_wizard"] = terminal_wizard_results["results"]
+        
+        terminal_success = terminal_wizard_results["success_count"]
+        terminal_total = terminal_wizard_results["success_count"] + terminal_wizard_results["failed_count"]
+        
+        if terminal_success == terminal_total:
+            log_success(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total} terminals")
+        else:
+            failed = [name for name, res in terminal_wizard_results["results"].items() 
+                     if not res.get("step1", False)]
+            logger.warning(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total}. Failed: {failed}")
+        
+        core.take_screenshot("terminal_wizard_step1_completed")
+
         time.sleep(10)
 
         # ==================== Summary ====================
@@ -397,12 +418,14 @@ def create_credit_card_merchant():
                         tax_success + owner1_success + owner2_success +
                         trade_success + underwriting_success + billing_success +
                         bank_success + cc_info_success + cc_services_success +
-                        cc_underwriting_success + cc_interchange_success)
+                        cc_underwriting_success + cc_interchange_success +
+                        terminal_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
                        bank_total + cc_info_total + cc_services_total +
-                       cc_underwriting_total + cc_interchange_total)
+                       cc_underwriting_total + cc_interchange_total +
+                       terminal_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -418,6 +441,7 @@ def create_credit_card_merchant():
         logger.info(f"Credit Card Services: {cc_services_success}/{cc_services_total}")
         logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
         logger.info(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}")
+        logger.info(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 

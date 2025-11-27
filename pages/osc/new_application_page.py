@@ -44,6 +44,8 @@ from data.osc.osc_data import (
     CREDIT_CARD_UNDERWRITING, generate_credit_card_underwriting_data,
     CREDIT_CARD_INTERCHANGE
 )
+from data.osc.add_terminal_data import TERMINALS_TO_ADD
+from pages.osc.add_terminal_page import AddTerminalPage
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
 
@@ -2575,6 +2577,64 @@ class NewApplicationPage(BasePage):
         self.logger.info(f"Credit Card Interchange: {success_count}/{total_count} fields successful")
         if failed_fields:
             self.logger.warning(f"Failed fields: {failed_fields}")
+        
+        return results
+
+    # =========================================================================
+    # TERMINAL WIZARD SECTION
+    # =========================================================================
+    
+    @performance_step("add_terminals")
+    @log_step
+    def add_terminals(self, terminals_list: list = None) -> Dict[str, Any]:
+        """
+        Add terminals using the Terminal Wizard.
+        
+        This is a wrapper method that delegates to AddTerminalPage for the actual
+        wizard automation. The AddTerminalPage is kept isolated for maintenance.
+        
+        Args:
+            terminals_list: List of terminal configuration dicts. If None, uses
+                           TERMINALS_TO_ADD from add_terminal_data.
+        
+        Returns:
+            Dict with results:
+                - success_count: Number of terminals successfully added
+                - failed_count: Number of terminals that failed
+                - results: Dict of individual results by terminal name
+                - added_terminals: List of successfully added terminal configs
+        """
+        # Use default terminals if none provided
+        if terminals_list is None:
+            terminals_list = TERMINALS_TO_ADD
+        
+        self.logger.info(f"Adding {len(terminals_list)} terminal(s) via Terminal Wizard")
+        
+        # Log terminals to be added
+        for terminal in terminals_list:
+            self.logger.info(f"Terminal to add: {terminal.get('name')} "
+                           f"(Part Type={terminal.get('part_type')}, Provider={terminal.get('provider')})")
+        
+        # Delegate to AddTerminalPage (isolated for maintenance)
+        add_terminal_page = AddTerminalPage(self.page)
+        results = add_terminal_page.add_terminals(terminals_list)
+        
+        # Log summary
+        success_count = results.get("success_count", 0)
+        total_count = len(terminals_list)
+        added_terminals = results.get("added_terminals", [])
+        
+        if added_terminals:
+            self.logger.info(f"Successfully added {len(added_terminals)} terminal(s)")
+            for t in added_terminals:
+                self.logger.info(f"  - {t['name']} (index: {t['index']})")
+        
+        if success_count == total_count:
+            self.logger.info(f"Terminal Wizard: {success_count}/{total_count} terminals added successfully")
+        else:
+            failed = [name for name, res in results.get("results", {}).items() 
+                     if not res.get("step1", False)]
+            self.logger.warning(f"Terminal Wizard: {success_count}/{total_count}. Failed: {failed}")
         
         return results
 
