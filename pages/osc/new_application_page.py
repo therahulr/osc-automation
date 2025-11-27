@@ -781,8 +781,8 @@ class NewApplicationPage(BasePage):
             "Chargeback Email"
         )
         
-        # Business Open Date (masked input mm/dd/yyyy)
-        results["business_open_date"] = self.fill_masked_input(
+        # Business Open Date (masked input mm/dd/yyyy) - use special date method with retry
+        results["business_open_date"] = self.fill_masked_date_input(
             loc.BUSINESS_OPEN_DATE_INPUT,
             data.get("business_open_date", ""),
             "Business Open Date"
@@ -1015,8 +1015,8 @@ class NewApplicationPage(BasePage):
             "Email"
         )
         
-        # Date of Birth (masked input dd/mm/yyyy)
-        results["dob"] = self.fill_masked_input(
+        # Date of Birth (masked input mm/dd/yyyy) - use special date method with retry
+        results["dob"] = self.fill_masked_date_input(
             loc.DOB_INPUT,
             data.get("dob", ""),
             "Date of Birth"
@@ -1029,8 +1029,8 @@ class NewApplicationPage(BasePage):
             "SSN"
         )
         
-        # Date of Ownership (masked input dd/mm/yyyy)
-        results["date_of_ownership"] = self.fill_masked_input(
+        # Date of Ownership (masked input mm/dd/yyyy) - use special date method with retry
+        results["date_of_ownership"] = self.fill_masked_date_input(
             loc.DATE_OF_OWNERSHIP_INPUT,
             data.get("date_of_ownership", ""),
             "Date of Ownership"
@@ -1160,8 +1160,8 @@ class NewApplicationPage(BasePage):
             "Email"
         )
         
-        # Date of Birth (masked input dd/mm/yyyy)
-        results["dob"] = self.fill_masked_input(
+        # Date of Birth (masked input mm/dd/yyyy) - use special date method with retry
+        results["dob"] = self.fill_masked_date_input(
             loc.DOB_INPUT,
             data.get("dob", ""),
             "Date of Birth"
@@ -1174,8 +1174,8 @@ class NewApplicationPage(BasePage):
             "SSN"
         )
         
-        # Date of Ownership (masked input dd/mm/yyyy)
-        results["date_of_ownership"] = self.fill_masked_input(
+        # Date of Ownership (masked input mm/dd/yyyy) - use special date method with retry
+        results["date_of_ownership"] = self.fill_masked_date_input(
             loc.DATE_OF_OWNERSHIP_INPUT,
             data.get("date_of_ownership", ""),
             "Date of Ownership"
@@ -2215,19 +2215,25 @@ class NewApplicationPage(BasePage):
         
         # Track whether alert was accepted (rates auto-copied)
         rates_copied = False
+        dialog_appeared = False
         
         # Randomly decide: 90% accept, 10% cancel
         accept_copy = random.random() < 0.90
+        self.logger.info(f"Rate copy decision: {'Accept (OK)' if accept_copy else 'Cancel'}")
         
         # Set up dialog handler
         def handle_dialog(dialog):
-            nonlocal rates_copied
+            nonlocal rates_copied, dialog_appeared
+            dialog_appeared = True
+            self.logger.info(f"Alert appeared: '{dialog.message}'")
+            # Add small delay to make the alert visible
+            time.sleep(0.5)
             if accept_copy:
-                self.logger.info(f"Alert: '{dialog.message}' - Clicking OK (copying rates)")
+                self.logger.info("Clicking OK (copying rates to all fields)")
                 dialog.accept()
                 rates_copied = True
             else:
-                self.logger.info(f"Alert: '{dialog.message}' - Clicking Cancel")
+                self.logger.info("Clicking Cancel (will fill fields manually)")
                 dialog.dismiss()
         
         # Step 1: Fill Visa Qualified Rate
@@ -2238,18 +2244,22 @@ class NewApplicationPage(BasePage):
                 visa_qualified_rate,
                 "Visa Qualified Rate"
             )
+            # Small pause after typing qualified rate before clicking signature field
+            time.sleep(0.3)
         
-        # Step 2: Add dialog handler and click on Signature field to trigger alert
+        # Step 2: Add dialog handler
         self.page.on("dialog", handle_dialog)
         
         try:
-            # Click on Visa Signature Rate field - this triggers the alert
+            # Scroll to and click on Visa Signature Rate field - this triggers the alert
+            self.logger.info("Clicking on Visa Signature Rate field to trigger copy alert...")
             signature_field = self.page.locator(loc.VISA_SIGNATURE_RATE_INPUT)
             signature_field.scroll_into_view_if_needed()
+            time.sleep(0.2)
             signature_field.click()
             
-            # Small wait to ensure alert is handled
-            time.sleep(0.3)
+            # Wait for dialog to be handled
+            time.sleep(0.8)
             
         except Exception as e:
             self.logger.error(f"Error clicking signature field: {e}")
@@ -2262,7 +2272,7 @@ class NewApplicationPage(BasePage):
         
         if rates_copied:
             # Rates were auto-copied by accepting the alert
-            self.logger.info("Rates auto-copied to all fields via OK selection")
+            self.logger.info("✅ Rates auto-copied to all fields via OK selection")
             
             # Mark all rate fields as successful (they were copied)
             results["visa_signature_rate"] = True
@@ -2273,16 +2283,26 @@ class NewApplicationPage(BasePage):
             if not does_not_accept_amex:
                 results["amex_qualified_rate"] = True
         else:
-            # Alert was cancelled - manually fill all remaining rate fields
-            self.logger.info("Alert cancelled - manually filling all rate fields")
+            # Alert was cancelled OR didn't appear - manually fill all remaining rate fields
+            if dialog_appeared:
+                self.logger.info("Alert was cancelled - manually filling all rate fields")
+            else:
+                self.logger.warning("No alert appeared - manually filling all rate fields")
             
-            # Clear and fill Visa Signature Rate (cursor is already there)
+            # Small pause after alert handling
+            time.sleep(0.3)
+            
+            # Clear and fill Visa Signature Rate
+            # Important: The field may have inherited value from qualified rate, so clear it first
             visa_signature_rate = data.get("visa_signature_rate", "")
             if visa_signature_rate:
-                # Field is already focused, just clear and type
                 try:
                     sig_field = self.page.locator(loc.VISA_SIGNATURE_RATE_INPUT)
-                    sig_field.clear()
+                    # Triple-click to select all, then clear
+                    sig_field.click(click_count=3)
+                    time.sleep(0.1)
+                    sig_field.fill("")
+                    time.sleep(0.1)
                     sig_field.fill(str(visa_signature_rate))
                     self.logger.info(f"Visa Signature Plan: {visa_signature_rate}")
                     results["visa_signature_rate"] = True

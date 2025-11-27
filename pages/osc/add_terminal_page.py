@@ -268,8 +268,9 @@ class AddTerminalPage:
         ):
             return False
         
-        # Wait for provider dropdown to update (may reload based on part type)
+        # Wait for processing banner (dynamic form may show loading)
         time.sleep(0.5)
+        self.wait_for_processing_banner_hidden(timeout=self.DEFAULT_TIMEOUT)
         
         # Step 1b: Select Provider
         if not self.select_dropdown_by_label(
@@ -279,8 +280,9 @@ class AddTerminalPage:
         ):
             return False
         
-        # Wait a moment
-        time.sleep(0.3)
+        # Wait for processing banner
+        time.sleep(0.5)
+        self.wait_for_processing_banner_hidden(timeout=self.DEFAULT_TIMEOUT)
         
         # Step 1c: Select Part Condition
         if not self.select_dropdown_by_label(
@@ -289,6 +291,10 @@ class AddTerminalPage:
             "Part Condition"
         ):
             return False
+        
+        # Wait for processing banner before proceeding
+        time.sleep(0.5)
+        self.wait_for_processing_banner_hidden(timeout=self.DEFAULT_TIMEOUT)
         
         self.logger.info("Step 1 fields filled successfully")
         return True

@@ -45,10 +45,13 @@ class LoginPage(BasePage):
         self.page.fill(LoginPageLocators.USERNAME_FIELD, username)
         self.page.fill(LoginPageLocators.PASSWORD_FIELD, password)
         
-        # Click the login button
-        self.page.click(LoginPageLocators.LOGIN_BUTTON)
+        # Click the login button (no_wait_after=True to avoid navigation timeout)
+        # The server redirect can be slow, so we handle waiting manually
+        self.page.click(LoginPageLocators.LOGIN_BUTTON, no_wait_after=True)
         self.logger.info("Login form submitted")
-        self.page.wait_for_timeout(2000)
+        
+        # Wait for navigation to complete (either MFA page or dashboard)
+        self.page.wait_for_load_state("networkidle", timeout=60000)
         return True
     
     def _bypass_mfa(self) -> bool:

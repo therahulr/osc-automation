@@ -34,6 +34,9 @@ downloads/
 # Traces
 traces/
 
+# Artifacts (unified output folder for all runs)
+artifacts/
+
 # Environment variables
 .env
 

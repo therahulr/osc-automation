@@ -1,0 +1,151 @@
+# Browser Configuration
+# ====================
+# Centralized configuration for browser, screenshots, video, and display settings.
+# These settings can be overridden by environment variables.
+
+browser:
+  # Browser type: chromium, firefox, webkit
+  type: chromium
+  
+  # Run browser in headless mode (no visible window)
+  headless: false
+  
+  # Use incognito/private browsing mode
+  incognito: true
+  
+  # Slow down operations by specified milliseconds (useful for debugging)
+  slow_mo_ms: 0
+  
+  # Browser launch arguments
+  args:
+    - "--start-maximized"
+    - "--disable-infobars"
+
+# Window Settings
+# ===============
+window:
+  # Auto-detect screen size and fit browser to it
+  auto_fit_screen: true
+  
+  # Position window at top-left corner (0, 0)
+  position_top_left: true
+  
+  # Fallback viewport size if screen detection fails
+  fallback_width: 1280
+  fallback_height: 800
+  
+  # Custom viewport (if auto_fit_screen is false)
+  custom_width: 1920
+  custom_height: 1080
+
+# Timeout Settings (in milliseconds)
+# ===================================
+timeouts:
+  default: 30000
+  navigation: 60000
+  action: 10000
+  popup: 60000
+
+# Screenshot Settings
+# ===================
+screenshots:
+  # Enable screenshot capture
+  enabled: true
+  
+  # Default format: png, jpeg
+  format: png
+  
+  # JPEG quality (1-100, only used if format is jpeg)
+  quality: 100
+  
+  # Capture full page (scroll) or viewport only
+  full_page: false
+  
+  # Disable animations during screenshot (prevents flickering)
+  disable_animations: true
+  
+  # Hide caret (cursor) in screenshots
+  hide_caret: true
+  
+  # Screenshot timeout in milliseconds
+  timeout: 30000
+
+# Video Recording Settings
+# ========================
+video:
+  # Enable video recording
+  enabled: false
+  
+  # Video format: webm (Playwright native)
+  format: webm
+  
+  # Match viewport size for video resolution
+  match_viewport: true
+  
+  # Custom video size (if match_viewport is false)
+  width: 1280
+  height: 720
+
+# Trace Settings
+# ==============
+trace:
+  # Enable Playwright trace collection
+  enabled: false
+  
+  # Include screenshots in trace
+  screenshots: true
+  
+  # Include DOM snapshots in trace
+  snapshots: true
+  
+  # Include source files in trace
+  sources: true
+
+# Retry Settings
+# ==============
+retry:
+  # Maximum number of retries for failed actions
+  max_retries: 3
+  
+  # Delay between retries in milliseconds
+  delay_ms: 1000
+  
+  # Retry on specific errors only
+  retry_on_timeout: true
+  retry_on_network_error: true
+
+# Logging Settings
+# ================
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: INFO
+  
+  # Enable colored terminal output
+  colored_output: true
+  
+  # Log browser console messages
+  log_console_messages: false
+
+# Download Settings
+# =================
+downloads:
+  # Directory for downloaded files (relative to project root)
+  dir: downloads
+  
+  # Accept downloads automatically
+  auto_accept: true
+
+# Performance Settings
+# ====================
+performance:
+  # Enable performance tracking
+  tracking_enabled: true
+  
+  # Track page load times
+  track_page_loads: true
+  
+  # Track element wait times
+  track_element_waits: true
+  
+  # Track action durations
+  track_actions: true

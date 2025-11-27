@@ -57,7 +57,7 @@ class AutomationLogger:
     Singleton logger for automation framework.
 
     Provides:
-    - Structured logging to files
+    - Structured logging to files (in RunContext folder when available)
     - Rich formatted console output
     - Automatic log rotation
     - Environment-aware configuration
@@ -66,24 +66,68 @@ class AutomationLogger:
     _instance: Optional[logging.Logger] = None
     _console: Optional[Console] = None
     _log_dir: Optional[Path] = None
+    _log_file: Optional[Path] = None
     _initialized: bool = False
 
     @classmethod
-    def get_logger(cls, app_name: str = "automation") -> logging.Logger:
+    def get_logger(cls, app_name: str = "automation", log_file: Optional[Path] = None) -> logging.Logger:
         """
         Get or create singleton logger instance.
 
         Args:
             app_name: Application name for log file organization
+            log_file: Optional explicit log file path (from RunContext)
 
         Returns:
             Configured logging.Logger instance
         """
         if cls._instance is None:
-            cls._instance = cls._create_logger(app_name)
+            cls._instance = cls._create_logger(app_name, log_file)
             cls._console = Console(theme=AUTOMATION_THEME)
             cls._initialized = True
         return cls._instance
+    
+    @classmethod
+    def reconfigure_file_handler(cls, log_file: Path) -> None:
+        """Reconfigure the logger to write to a new log file.
+        
+        Used when RunContext is initialized after logger creation.
+        
+        Args:
+            log_file: New log file path
+        """
+        if cls._instance is None:
+            return
+            
+        # Remove existing file handlers
+        handlers_to_remove = [h for h in cls._instance.handlers 
+                             if isinstance(h, (logging.FileHandler, RotatingFileHandler))]
+        for handler in handlers_to_remove:
+            handler.close()
+            cls._instance.removeHandler(handler)
+        
+        # Add new file handler
+        cls._log_file = log_file
+        cls._log_dir = log_file.parent
+        
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=10 * 1024 * 1024,  # 10MB
+            backupCount=5,
+        )
+        
+        env = get_env("ENV", "prod").lower()
+        log_level = logging.DEBUG if env == "dev" else logging.INFO
+        file_handler.setLevel(log_level)
+        
+        file_formatter = logging.Formatter(
+            fmt="%(asctime)s | %(levelname)-8s | %(name)s:%(module)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        file_handler.setFormatter(file_formatter)
+        cls._instance.addHandler(file_handler)
+        
+        cls._instance.info(f"Log file switched to: {log_file}")
 
     @classmethod
     def get_console(cls) -> Console:
@@ -93,12 +137,13 @@ class AutomationLogger:
         return cls._console
 
     @classmethod
-    def _create_logger(cls, app_name: str) -> logging.Logger:
+    def _create_logger(cls, app_name: str, log_file: Optional[Path] = None) -> logging.Logger:
         """
         Create and configure logger with console and file handlers.
 
         Args:
             app_name: Application name for log organization
+            log_file: Optional explicit log file path (from RunContext)
 
         Returns:
             Configured logger instance
@@ -129,17 +174,23 @@ class AutomationLogger:
         logger.addHandler(console_handler)
 
         # File handler with structured formatting and rotation
-        now = datetime.now()
-        date_str = now.strftime("%Y-%m-%d")
-        time_str = now.strftime("%I_%M_%p")
+        # Use provided log_file or fall back to legacy path structure
+        if log_file is not None:
+            cls._log_file = log_file
+            cls._log_dir = log_file.parent
+        else:
+            # Legacy fallback (will be overwritten when RunContext is initialized)
+            now = datetime.now()
+            date_str = now.strftime("%Y-%m-%d")
+            time_str = now.strftime("%I_%M_%p")
+            log_dir = Path.cwd() / "logs" / app_name / date_str
+            ensure_dir(log_dir)
+            cls._log_dir = log_dir
+            cls._log_file = log_dir / f"{app_name}_{time_str}.log"
 
-        log_dir = Path.cwd() / "logs" / app_name / date_str
-        ensure_dir(log_dir)
-        cls._log_dir = log_dir
-
-        log_file = log_dir / f"{app_name}_{time_str}.log"
+        ensure_dir(cls._log_dir)
         file_handler = RotatingFileHandler(
-            log_file,
+            cls._log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5,
         )
@@ -156,7 +207,7 @@ class AutomationLogger:
         logger.info(
             f"[bold cyan]Logger initialized[/] | App: [yellow]{app_name}[/] | "
             f"Level: [green]{logging.getLevelName(log_level)}[/] | "
-            f"File: [blue]{log_file}[/]",
+            f"File: [blue]{cls._log_file}[/]",
             extra={"markup": True}
         )
 
@@ -166,6 +217,11 @@ class AutomationLogger:
     def get_log_dir(cls) -> Optional[Path]:
         """Get the current log directory path."""
         return cls._log_dir
+    
+    @classmethod
+    def get_log_file(cls) -> Optional[Path]:
+        """Get the current log file path."""
+        return cls._log_file
 
     @classmethod
     def success(cls, message: str):
@@ -241,17 +297,18 @@ class AutomationLogger:
 
 
 # Convenience functions for common logging patterns
-def get_logger(app_name: str = "automation") -> logging.Logger:
+def get_logger(app_name: str = "automation", log_file: Optional[Path] = None) -> logging.Logger:
     """
     Get the singleton automation logger.
 
     Args:
         app_name: Application name for log organization
+        log_file: Optional explicit log file path (from RunContext)
 
     Returns:
         Configured logger instance
     """
-    return AutomationLogger.get_logger(app_name)
+    return AutomationLogger.get_logger(app_name, log_file)
 
 
 def log_success(message: str):

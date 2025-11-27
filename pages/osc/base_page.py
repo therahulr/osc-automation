@@ -201,6 +201,95 @@ class OSCBasePage:
             self.logger.error(f"{field_name}: Failed to fill masked input - {e}")
             return False
 
+    def fill_masked_date_input(self, selector: str, value: str, field_name: str = None,
+                               delay_ms: int = 150, max_retries: int = 2) -> bool:
+        """
+        Fill a masked date input field by typing digits slowly with retry logic.
+        
+        Used specifically for date fields with mask pattern like __/__/____ (mm/dd/yyyy)
+        which can be sensitive to typing speed. Includes retry logic if digit count mismatch.
+        
+        Args:
+            selector: CSS or XPath selector for the input
+            value: Date value containing digits (e.g., '01152020' or '01/15/2020')
+            field_name: Friendly name for logging
+            delay_ms: Delay between keystrokes in milliseconds (default: 150ms for reliability)
+            max_retries: Maximum retry attempts if digit count mismatch (default: 2)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        field_name = field_name or selector[:40]
+        
+        if not value:
+            self.logger.debug(f"{field_name}: Skipped (empty value)")
+            return True
+        
+        # Extract digits only
+        digits = ''.join(c for c in value if c.isdigit())
+        
+        if not digits:
+            self.logger.warning(f"{field_name}: No digits found in value '{value}'")
+            return False
+        
+        for attempt in range(max_retries + 1):
+            try:
+                self.wait_for_element(selector, timeout=self.SHORT_TIMEOUT)
+                
+                # Click to focus the field
+                self.page.click(selector)
+                time.sleep(0.15)
+                
+                # Clear existing content
+                self.page.locator(selector).clear()
+                time.sleep(0.15)
+                
+                # Click again to ensure focus at start of field
+                self.page.click(selector)
+                time.sleep(0.1)
+                
+                # Type each digit slowly with increased delay
+                for digit in digits:
+                    self.page.keyboard.press(digit)
+                    time.sleep(delay_ms / 1000)
+                
+                # Small delay before verification
+                time.sleep(0.1)
+                
+                # Verify by getting the value back
+                actual = self.get_text_value(selector)
+                
+                # Check if digits are present in the result (formatted or not)
+                actual_digits = ''.join(c for c in (actual or '') if c.isdigit())
+                
+                if actual_digits == digits:
+                    self.logger.info(f"{field_name}: Filled with '{actual}' (digits: {digits})")
+                    return True
+                elif len(actual_digits) != len(digits):
+                    # Wrong digit count - clear and retry
+                    self.logger.warning(f"{field_name}: Digit count mismatch ({len(actual_digits)} vs {len(digits)}). "
+                                       f"Got '{actual_digits}', expected '{digits}'. Retrying... ({attempt + 1}/{max_retries + 1})")
+                    if attempt < max_retries:
+                        # Triple-click to select all, then delete
+                        self.page.click(selector, click_count=3)
+                        time.sleep(0.1)
+                        self.page.keyboard.press("Backspace")
+                        time.sleep(0.2)
+                        continue
+                else:
+                    # Same digit count - browser may have reformatted date (MMDDYYYY to YYYYMMDD)
+                    # This is acceptable as long as length matches (all digits captured)
+                    self.logger.info(f"{field_name}: Filled with '{actual}' (digits reordered by browser: {actual_digits})")
+                    return True
+                
+            except Exception as e:
+                self.logger.error(f"{field_name}: Failed to fill masked date input (attempt {attempt + 1}) - {e}")
+                if attempt >= max_retries:
+                    return False
+        
+        self.logger.error(f"{field_name}: Failed after {max_retries + 1} attempts")
+        return False
+
     def fill_masked_equity_input(self, selector: str, value: str, field_name: str = None,
                                   delay_ms: int = 100) -> bool:
         """
@@ -842,14 +931,34 @@ class OSCBasePage:
     # =========================================================================
     
     def take_screenshot(self, name: str = None) -> str:
-        """Take a screenshot for debugging."""
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        filename = f"screenshots/{name or 'debug'}_{timestamp}.png"
+        """Take a screenshot for debugging.
+        
+        Uses RunContext to save to the current run's screenshots folder.
+        Uses animations="disabled" to prevent flickering.
+        """
+        from core.run_context import RunContext
+        
+        ctx = RunContext.get_current()
+        if ctx:
+            # Use RunContext path (preferred)
+            screenshot_path = ctx.get_screenshot_path(name or "debug")
+        else:
+            # Fallback for standalone usage
+            from pathlib import Path
+            import time as time_module
+            timestamp = time_module.strftime("%Y%m%d_%H%M%S")
+            screenshots_dir = Path.cwd() / "artifacts" / "debug" / "screenshots"
+            screenshots_dir.mkdir(parents=True, exist_ok=True)
+            screenshot_path = screenshots_dir / f"{name or 'debug'}_{timestamp}.png"
         
         try:
-            self.page.screenshot(path=filename)
-            self.logger.info(f"Screenshot saved: {filename}")
-            return filename
+            self.page.screenshot(
+                path=str(screenshot_path),
+                animations="disabled",  # Prevents CSS animations from causing flicker
+                caret="hide"  # Hide text cursor/caret
+            )
+            self.logger.info(f"Screenshot saved: {screenshot_path.name}")
+            return str(screenshot_path)
         except Exception as e:
             self.logger.error(f"Screenshot failed: {e}")
             return ""

@@ -51,6 +51,7 @@ def create_credit_card_merchant():
         script_name="create_credit_card_merchant",
         headless=False,
         enable_performance_tracking=True,
+        # record_video and enable_tracing are driven from config/browser.config.yaml
         metadata={
             "environment": "development",
             "tags": ["osc", "merchant_creation", "automation"],

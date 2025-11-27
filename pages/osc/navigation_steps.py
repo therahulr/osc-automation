@@ -15,6 +15,15 @@ from locators.osc_locators import (
     ApplicationInformationLocators
 )
 
+# Lazy import to avoid circular dependencies
+def _get_browser_manager():
+    """Get browser manager singleton for window positioning."""
+    try:
+        from core.automation_core import UIAutomationCore
+        return UIAutomationCore._browser_manager
+    except Exception:
+        return None
+
 # Use logger attached to BasePage instances (self.logger). Module-level
 # logger creation is avoided so the page objects can share the core
 # Logger singleton when it is initialized by the script.
@@ -73,6 +82,12 @@ class NavigationSteps(BasePage):
         # 9. Switch to the new tab
         new_page = popup_info.value
         self.logger.info(f"Step 9: New tab opened, switching to URL: {new_page.url}")
+        
+        # Position the new tab window to match original window size/position
+        browser_mgr = _get_browser_manager()
+        if browser_mgr:
+            browser_mgr.position_window(new_page)
+            self.logger.debug("New tab window positioned to screen size")
 
         # 10. Wait for application form to load in new tab
         self.logger.info("Step 10: Waiting for application form to load in new tab")

@@ -1,5 +1,4 @@
-"""
-Automation decorators for common functionality
+"""Automation decorators for common functionality
 
 Enhanced decorators that integrate with performance tracking when available,
 but fall back to original behavior for backward compatibility.
@@ -8,9 +7,16 @@ but fall back to original behavior for backward compatibility.
 import time
 import functools
 from typing import Callable, Any
-from core.logger import get_logger
 
-logger = get_logger(__name__)
+
+def _get_logger():
+    """Get the singleton logger from core (lazy import to avoid circular deps)."""
+    try:
+        from core.logger import get_logger
+        return get_logger("automation")
+    except Exception:
+        import logging
+        return logging.getLogger(__name__)
 
 
 def timeit(func: Callable) -> Callable:
@@ -40,7 +46,7 @@ def timeit(func: Callable) -> Callable:
         start = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start
-        logger.info(f"{func.__name__} completed in {duration:.2f}s")
+        _get_logger().info(f"{func.__name__} completed in {duration:.2f}s")
         return result
     
     return wrapper
@@ -63,7 +69,7 @@ def retry(attempts: int = 3, delay: float = 1.0):
                         from core.performance import performance_tracker
                         session = performance_tracker.get_current_session()
                         if session and attempt > 0:
-                            logger.info(f"{func.__name__} retry attempt {attempt + 1}/{attempts}")
+                            _get_logger().info(f"{func.__name__} retry attempt {attempt + 1}/{attempts}")
                     except ImportError:
                         pass
                     
@@ -71,7 +77,7 @@ def retry(attempts: int = 3, delay: float = 1.0):
                 except Exception as e:
                     last_exception = e
                     if attempt == attempts - 1:
-                        logger.error(f"{func.__name__} failed after {attempts} attempts: {e}")
+                        _get_logger().error(f"{func.__name__} failed after {attempts} attempts: {e}")
                         raise
                     time.sleep(delay)
             
@@ -104,7 +110,7 @@ def log_step(func: Callable) -> Callable:
             pass  # Performance tracking not available
         
         # Fall back to original log_step behavior
-        logger.info(f"Executing: {func.__name__}")
+        _get_logger().info(f"Executing: {func.__name__}")
         return func(*args, **kwargs)
     
     return wrapper

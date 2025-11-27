@@ -139,13 +139,17 @@ class BrowserManager:
         user_profile_dir: Optional[str] = None,
         incognito: Optional[bool] = None,
         viewport: Optional[dict] = None,
+        record_video: bool = False,
+        video_dir: Optional[Path] = None,
     ) -> BrowserContext:
         """Create new browser context with optional profile or incognito mode.
 
         Args:
             user_profile_dir: Path to user profile directory (persistent context)
             incognito: Override default incognito setting from config
-            viewport: Custom viewport size (default: maximized 1920x1080)
+            viewport: Custom viewport size (default: screen size)
+            record_video: Enable video recording for this context
+            video_dir: Directory to save videos (required if record_video=True)
 
         Returns:
             New BrowserContext instance
@@ -169,6 +173,12 @@ class BrowserManager:
             "viewport": viewport,
             "accept_downloads": True,
         }
+        
+        # Add video recording if enabled
+        if record_video and video_dir:
+            context_kwargs["record_video_dir"] = str(video_dir)
+            context_kwargs["record_video_size"] = viewport
+            self._logger.info(f"Video recording enabled | dir={video_dir}")
 
         # Persistent context (user profile) OR standard context
         if user_profile_dir:
@@ -193,6 +203,46 @@ class BrowserManager:
         self._contexts.append(context)
         return context
 
+    def position_window(self, page: Page, context: BrowserContext = None) -> bool:
+        """Position a page window at top-left corner with screen-fit size.
+        
+        Call this method when switching to a new tab/popup to ensure
+        consistent window positioning.
+        
+        Args:
+            page: Page to position
+            context: BrowserContext (uses page's context if not provided)
+            
+        Returns:
+            bool: True if positioning succeeded, False otherwise
+        """
+        try:
+            ctx = context or page.context
+            viewport = self._get_screen_viewport()
+            cdp = ctx.new_cdp_session(page)
+            
+            # Get window ID first
+            window_info = cdp.send("Browser.getWindowForTarget")
+            window_id = window_info.get("windowId")
+            
+            if window_id:
+                # Set window bounds: position at (0, 0) and set size
+                cdp.send("Browser.setWindowBounds", {
+                    "windowId": window_id,
+                    "bounds": {
+                        "left": 0,
+                        "top": 0,
+                        "width": viewport["width"],
+                        "height": viewport["height"],
+                        "windowState": "normal"
+                    }
+                })
+                self._logger.debug(f"Window positioned at (0, 0) with size {viewport['width']}x{viewport['height']}")
+                return True
+        except Exception as e:
+            self._logger.debug(f"Could not position window via CDP: {e}")
+        return False
+
     def new_page(self, context: BrowserContext) -> Page:
         """Create new page in given context with performance tracking.
 
@@ -212,27 +262,8 @@ class BrowserManager:
         page.set_default_navigation_timeout(settings.nav_timeout_ms)
         
         # Position window at top-left corner (0, 0) using CDP
-        try:
-            viewport = self._get_screen_viewport()
-            cdp = context.new_cdp_session(page)
-            # Get window ID first
-            window_info = cdp.send("Browser.getWindowForTarget")
-            window_id = window_info.get("windowId")
-            if window_id:
-                # Set window bounds: position at (0, 0) and set size
-                cdp.send("Browser.setWindowBounds", {
-                    "windowId": window_id,
-                    "bounds": {
-                        "left": 0,
-                        "top": 0,
-                        "width": viewport["width"],
-                        "height": viewport["height"],
-                        "windowState": "normal"
-                    }
-                })
-                self._logger.info(f"Window positioned at (0, 0) with size {viewport['width']}x{viewport['height']}")
-        except Exception as e:
-            self._logger.debug(f"Could not position window via CDP: {e}")
+        self.position_window(page, context)
+        self._logger.info(f"Window positioned at (0, 0) with screen-fit size")
         
         page_creation_time = time.time() - page_start
         self._logger.debug(f"Page created in {page_creation_time:.3f}s")
