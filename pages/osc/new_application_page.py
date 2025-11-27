@@ -2670,4 +2670,164 @@ class NewApplicationPage(BasePage):
         
         return results
 
+    # =========================================================================
+    # SAVE / SUBMIT ACTIONS
+    # =========================================================================
+    
+    @performance_step("click_save_button")
+    @log_step
+    def click_save_button(self) -> bool:
+        """
+        Click the Save button to save the application.
+        
+        Returns:
+            bool: True if save button clicked successfully, False otherwise
+        """
+        try:
+            save_button = self.page.locator(NewApplicationPageLocators.BTN_SAVE)
+            save_button.wait_for(state="visible", timeout=10000)
+            save_button.click()
+            self.logger.info("Save button clicked")
+            
+            # Wait for page to process the save
+            time.sleep(2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to click Save button: {e}")
+            return False
+
+    @performance_step("click_submit_button")
+    @log_step
+    def click_submit_button(self) -> bool:
+        """
+        Click the Submit button to submit the application.
+        
+        Returns:
+            bool: True if submit button clicked successfully, False otherwise
+        """
+        try:
+            submit_button = self.page.locator(NewApplicationPageLocators.BTN_SUBMIT)
+            submit_button.wait_for(state="visible", timeout=10000)
+            submit_button.click()
+            self.logger.info("Submit button clicked")
+            
+            # Wait for page to process the submission
+            time.sleep(2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to click Submit button: {e}")
+            return False
+
+    @performance_step("get_application_id")
+    @log_step
+    def get_application_id(self) -> Optional[str]:
+        """
+        Get the Application ID from the page title after saving.
+        
+        The page title format is: "Sales Center - Application 313103"
+        This extracts and returns the AppInfoID (e.g., "313103").
+        
+        Returns:
+            str: The AppInfoID if found, None otherwise
+        """
+        try:
+            # Use the span ID directly without text condition
+            page_title_locator = "//span[@id='ctl00_ContentPlaceHolder1_lblTitle']"
+            page_title_element = self.page.locator(page_title_locator)
+            page_title_element.wait_for(state="visible", timeout=15000)
+            
+            title_text = page_title_element.inner_text()
+            self.logger.info(f"Page title text: {title_text}")
+            
+            # Extract AppInfoID by splitting on space and getting last item
+            # "Sales Center - Application 313103" -> "313103"
+            if title_text:
+                parts = title_text.strip().split()
+                if parts:
+                    app_info_id = parts[-1]  # Get last item
+                    # Verify it's a number
+                    if app_info_id.isdigit():
+                        self.logger.info(f"Extracted AppInfoID: {app_info_id}")
+                        return app_info_id
+                    else:
+                        self.logger.warning(f"Last part '{app_info_id}' is not a number")
+            
+            self.logger.warning(f"Could not extract AppInfoID from title: {title_text}")
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to get Application ID: {e}")
+            return None
+
+    @performance_step("save_application")
+    @log_step
+    def save_application(self) -> Dict[str, Any]:
+        """
+        Save the application and extract the AppInfoID.
+        
+        Returns:
+            Dict with:
+                - success: bool - whether save was successful
+                - app_info_id: str or None - the extracted AppInfoID
+                - message: str - status message
+        """
+        result = {
+            "success": False,
+            "app_info_id": None,
+            "message": ""
+        }
+        
+        # Click Save button
+        save_clicked = self.click_save_button()
+        if not save_clicked:
+            result["message"] = "Failed to click Save button"
+            return result
+        
+        # Wait for page to update with the application ID
+        time.sleep(2)
+        
+        # Extract the AppInfoID
+        app_info_id = self.get_application_id()
+        
+        if app_info_id:
+            result["success"] = True
+            result["app_info_id"] = app_info_id
+            result["message"] = f"Application saved successfully. AppInfoID: {app_info_id}"
+            self.logger.info(result["message"])
+        else:
+            result["message"] = "Save clicked but could not extract AppInfoID"
+            self.logger.warning(result["message"])
+        
+        return result
+
+    @performance_step("submit_application")
+    @log_step
+    def submit_application(self) -> Dict[str, Any]:
+        """
+        Submit the application.
+        
+        Returns:
+            Dict with:
+                - success: bool - whether submit was successful
+                - message: str - status message
+        """
+        result = {
+            "success": False,
+            "message": ""
+        }
+        
+        # Click Submit button
+        submit_clicked = self.click_submit_button()
+        if not submit_clicked:
+            result["message"] = "Failed to click Submit button"
+            return result
+        
+        # Wait for page to process
+        time.sleep(2)
+        
+        result["success"] = True
+        result["message"] = "Application submitted successfully"
+        self.logger.info(result["message"])
+        
+        return result
+
     

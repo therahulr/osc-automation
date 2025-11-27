@@ -179,7 +179,7 @@ SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
 # =====================================================
 TERMINAL_QUANTITIES: List[tuple] = [
     (SAGE_50_TERMINAL, 1),
-    (SAGE_VIRTUAL_TERMINAL, 2),
+    # (SAGE_VIRTUAL_TERMINAL, 2),
 ]
 
 

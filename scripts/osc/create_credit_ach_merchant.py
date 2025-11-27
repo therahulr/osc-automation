@@ -1,7 +1,7 @@
 """
-OSC Credit Card Merchant Creation - Complete Workflow
+OSC Credit Card + ACH Merchant Creation - Complete Workflow
 
-This script automates the full merchant creation process:
+This script automates the full merchant creation process with both Credit Card and ACH:
 1. Login to OSC
 2. Navigate to new application
 3. Select Credit Card product
@@ -20,6 +20,10 @@ This script automates the full merchant creation process:
 16. Fill Credit Card Underwriting
 17. Fill Credit Card Interchange
 18. Add Terminal (Wizard Step 1)
+19. Select ACH Product
+20. Fill ACH Information
+21. Save Application
+22. Submit Application (commented - enable in lower env)
 
 BENEFITS:
 - Uses UIAutomationCore for automatic browser/logging management
@@ -50,23 +54,26 @@ CREDIT_CARD_SERVICES = _data.CREDIT_CARD_SERVICES
 CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
 CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
 
+# TODO: Add ACH data imports when available
+# ACH_INFORMATION = _data.ACH_INFORMATION
+
 import time
 
-def create_credit_card_merchant():
-    """Create credit card merchant workflow with comprehensive performance tracking."""
+def create_credit_ach_merchant():
+    """Create credit card + ACH merchant workflow with comprehensive performance tracking."""
 
     username, password = osc_settings.credentials
 
     with UIAutomationCore(
         app_name="osc",
-        script_name="create_credit_card_merchant",
+        script_name="create_credit_ach_merchant",
         headless=False,
         enable_performance_tracking=True,
         # record_video and enable_tracing are driven from config/browser.config.yaml
         metadata={
             "environment": "development",
-            "tags": ["osc", "merchant_creation", "automation"],
-            "notes": "Credit card merchant creation automation workflow"
+            "tags": ["osc", "merchant_creation", "automation", "credit_card", "ach"],
+            "notes": "Credit card + ACH merchant creation automation workflow"
         }
     ) as core:
 
@@ -76,7 +83,7 @@ def create_credit_card_merchant():
         # Track results for all sections
         all_results = {}
 
-        log_section("OSC CREDIT CARD MERCHANT CREATION")
+        log_section("OSC CREDIT CARD + ACH MERCHANT CREATION")
 
         # ==================== Step 1: Login ====================
         log_step("Step 1: Starting login process")
@@ -421,8 +428,43 @@ def create_credit_card_merchant():
         
         core.take_screenshot("terminal_wizard_step1_completed")
 
-        # ==================== Step 19: Save Application ====================
-        log_step("Step 19: Saving Application")
+        # ====================================================================================
+        # ACH PRODUCT SECTION
+        # TODO: Implement ACH-specific steps below
+        # ====================================================================================
+
+        # ==================== Step 19: Select ACH Product ====================
+        # log_step("Step 19: Selecting ACH product")
+        # 
+        # ach_selected = new_app_page.select_ach_product()
+        # 
+        # if not ach_selected:
+        #     logger.error("Failed to select ACH product")
+        #     # Continue anyway - ACH is optional
+        # else:
+        #     log_success("ACH product selected and verified")
+        # 
+        # core.take_screenshot("ach_product_selected")
+
+        # ==================== Step 20: Fill ACH Information ====================
+        # log_step("Step 20: Filling ACH Information section")
+        # 
+        # ach_results = new_app_page.fill_ach_information_section()
+        # all_results["ach_info"] = ach_results
+        # 
+        # ach_success = sum(1 for r in ach_results.values() if r)
+        # ach_total = len(ach_results)
+        # 
+        # if ach_success == ach_total:
+        #     log_success(f"ACH Information: {ach_success}/{ach_total} fields")
+        # else:
+        #     failed = [f for f, r in ach_results.items() if not r]
+        #     logger.warning(f"ACH Information: {ach_success}/{ach_total}. Failed: {failed}")
+        # 
+        # core.take_screenshot("ach_info_completed")
+
+        # ==================== Step 21: Save Application ====================
+        log_step("Step 21: Saving Application")
         
         save_result = new_app_page.save_application()
         all_results["save_application"] = save_result
@@ -436,8 +478,8 @@ def create_credit_card_merchant():
         
         core.take_screenshot("application_saved")
 
-        # ==================== Step 20: Submit Application (COMMENTED - Enable in lower env) ====================
-        # log_step("Step 20: Submitting Application")
+        # ==================== Step 22: Submit Application  ====================
+        # log_step("Step 22: Submitting Application")
         # 
         # submit_result = new_app_page.submit_application()
         # all_results["submit_application"] = submit_result
@@ -480,6 +522,7 @@ def create_credit_card_merchant():
         logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
         logger.info(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}")
         logger.info(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total}")
+        # logger.info(f"ACH Information: {ach_success}/{ach_total}")  # TODO: Uncomment when ACH implemented
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -494,8 +537,6 @@ def create_credit_card_merchant():
             logger.info(f"✅ Application is saved and AppInfoID is {app_info_id}")
         else:
             logger.warning("Application save status unknown - AppInfoID not extracted")
-
-        # TODO: Add next sections (Equipment, etc.)
 
         core.take_screenshot("final_state")
         
@@ -513,11 +554,11 @@ def create_credit_card_merchant():
 
 
 if __name__ == "__main__":
-    results = create_credit_card_merchant()
+    results = create_credit_ach_merchant()
     
     if results:
         app_id = results.get('app_info_id', 'Unknown')
-        print(f"\n✅ Merchant creation completed: {results['summary']['success_rate']} success rate")
+        print(f"\n✅ Credit Card + ACH Merchant creation completed: {results['summary']['success_rate']} success rate")
         print(f"📋 Application is saved and AppInfoID is {app_id}")
     else:
         print("\n❌ Merchant creation failed")
