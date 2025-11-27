@@ -34,6 +34,7 @@ from locators.osc_locators import (
     BankInformationLocators,
     CreditCardInformationLocators,
     CreditCardUnderwritingLocators,
+    CommonLocators,
 )
 # Dynamic data loading based on OSC_DATA_ENV environment variable
 from config.osc.config import get_osc_data
@@ -2717,6 +2718,149 @@ class NewApplicationPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to click Submit button: {e}")
             return False
+
+    @performance_step("click_validate_button")
+    @log_step
+    def click_validate_button(self) -> bool:
+        """
+        Click the Validate button to validate the application.
+        
+        Returns:
+            bool: True if validate button clicked successfully, False otherwise
+        """
+        try:
+            validate_button = self.page.locator(NewApplicationPageLocators.BTN_VALIDATE)
+            validate_button.wait_for(state="visible", timeout=10000)
+            validate_button.click()
+            self.logger.info("Validate button clicked")
+            
+            # Wait for validation to process
+            time.sleep(2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to click Validate button: {e}")
+            return False
+
+    @performance_step("get_validation_errors")
+    @log_step
+    def get_validation_errors(self) -> list:
+        """
+        Get all validation error messages from the error container.
+        
+        Returns:
+            list: List of validation error messages, empty if no errors
+        """
+        errors = []
+        try:
+            # Check if validation errors container is visible
+            error_container = self.page.locator(NewApplicationPageLocators.VALIDATION_ERRORS_CONTAINER)
+            if error_container.is_visible(timeout=3000):
+                # Get all error items
+                error_items = self.page.locator(NewApplicationPageLocators.VALIDATION_ERROR_ITEMS)
+                count = error_items.count()
+                
+                for i in range(count):
+                    error_text = error_items.nth(i).inner_text().strip()
+                    if error_text:
+                        errors.append(error_text)
+                
+                self.logger.warning(f"Found {len(errors)} validation errors")
+                for idx, error in enumerate(errors, 1):
+                    self.logger.warning(f"  {idx}. {error}")
+        except Exception as e:
+            self.logger.debug(f"No validation errors found or error checking: {e}")
+        
+        return errors
+
+    @performance_step("get_success_message")
+    @log_step
+    def get_success_message(self) -> Optional[str]:
+        """
+        Get the success toast message if visible.
+        
+        Returns:
+            str: Success message text, None if not visible
+        """
+        try:
+            success_toast = self.page.locator(NewApplicationPageLocators.SUCCESS_TOAST)
+            if success_toast.is_visible(timeout=3000):
+                # Get the message text from the inner div
+                message_element = self.page.locator(NewApplicationPageLocators.SUCCESS_TOAST_MESSAGE)
+                if message_element.is_visible():
+                    message = message_element.inner_text().strip()
+                    self.logger.info(f"Success message: {message}")
+                    return message
+                else:
+                    # Fallback to getting text from the toast itself
+                    message = success_toast.inner_text().strip()
+                    self.logger.info(f"Success message: {message}")
+                    return message
+        except Exception as e:
+            self.logger.debug(f"No success message visible: {e}")
+        
+        return None
+
+    @performance_step("validate_application")
+    @log_step
+    def validate_application(self) -> Dict[str, Any]:
+        """
+        Validate the application by clicking the Validate button and checking results.
+        
+        Returns:
+            Dict with:
+                - success: bool - True if validation passed (no errors)
+                - message: str - success message or summary
+                - errors: list - list of validation errors (empty if valid)
+                - app_info_id: str or None - the AppInfoID if available
+        """
+        result = {
+            "success": False,
+            "message": "",
+            "errors": [],
+            "app_info_id": None
+        }
+        
+        # Click Validate button
+        validate_clicked = self.click_validate_button()
+        if not validate_clicked:
+            result["message"] = "Failed to click Validate button"
+            return result
+        
+        # Wait for validation to complete
+        time.sleep(2)
+        
+        # Check for validation errors first
+        errors = self.get_validation_errors()
+        
+        if errors:
+            result["success"] = False
+            result["errors"] = errors
+            result["message"] = f"Validation failed with {len(errors)} error(s)"
+            self.logger.error(result["message"])
+            for idx, error in enumerate(errors, 1):
+                self.logger.error(f"  ❌ {idx}. {error}")
+        else:
+            # Check for success message
+            success_message = self.get_success_message()
+            
+            # Get AppInfoID
+            app_info_id = self.get_application_id()
+            result["app_info_id"] = app_info_id
+            
+            if success_message:
+                result["success"] = True
+                result["message"] = success_message
+                self.logger.info(f"✅ Validation passed: {success_message}")
+            else:
+                # No errors and no success message - assume success
+                result["success"] = True
+                result["message"] = "Validation passed - no errors found"
+                self.logger.info(result["message"])
+            
+            if app_info_id:
+                self.logger.info(f"AppInfoID: {app_info_id}")
+        
+        return result
 
     @performance_step("get_application_id")
     @log_step

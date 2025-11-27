@@ -1,8 +1,8 @@
 """
 OSC Test Data - PROD Environment
 
-Production environment test data with PROD-specific BET numbers and business type.
-Imports all common data from common_test_data.py.
+Production environment test data with PROD-specific BET numbers.
+All common data is imported from common_test_data.py.
 """
 
 from data.osc.common_test_data import (
@@ -39,6 +39,13 @@ from data.osc.common_test_data import (
     CREDIT_CARD_SERVICES,
     SALES_REPRESENTATIVE,
     MERCHANT_PRODUCTS,
+    BUSINESS_TYPE,
+    GENERAL_UNDERWRITING_INFO,
+    CREDIT_CARD_UNDERWRITING,
+    
+    # Exported variables for coordination
+    MERCHANT_TYPE,
+    OWNERSHIP_TYPE,
 )
 
 
@@ -46,20 +53,7 @@ from data.osc.common_test_data import (
 # PROD ENVIRONMENT SPECIFIC DATA
 # =============================================================================
 
-# Business type for PROD
-BUSINESS_TYPE = "Retail"
-
-# General Underwriting with PROD business type
-GENERAL_UNDERWRITING_INFO = {
-    "business_type": BUSINESS_TYPE,
-    "sic_code": "7311",
-    "products_sold": "General retail merchandise and consumer goods",
-    "return_policy": "30 Days Money Back Guarantee",
-    "days_until_delivery": "5",
-    "seasonal_months": [],
-}
-
-# BET Numbers for PROD environment
+# BET Numbers for PROD environment (ONLY thing that differs between environments)
 BET_NUMBERS = {
     "visa": "7291",
     "mastercard": "5291",
@@ -67,6 +61,5 @@ BET_NUMBERS = {
     "amex": "4128",
 }
 
-# Generate environment-specific data
-CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data(BUSINESS_TYPE)
+# Generate Credit Card Interchange with PROD-specific BET numbers
 CREDIT_CARD_INTERCHANGE = generate_credit_card_interchange_data(BET_NUMBERS)

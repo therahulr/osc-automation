@@ -1,0 +1,3 @@
+Business Open Date is invalid.
+Invalid Web Site format.
+Card Not Present percentage does not meet Internet/MOTO threshold.

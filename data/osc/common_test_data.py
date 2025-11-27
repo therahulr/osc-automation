@@ -199,7 +199,7 @@ LOCATION_INFO = {
     "phone": generate_phone_digits(),
     "fax": generate_fax_digits(),
     "customer_service_phone": generate_phone_digits(),
-    "website": "https://www." + faker.domain_name(),
+    "website": "www.nuvei.com",
     "email": faker.email(),
     "chargeback_email": "rahul.raj@nuvei.com",
     "business_open_date": generate_random_date_past(years_back=15),
@@ -211,12 +211,15 @@ LOCATION_INFO = {
 # =============================================================================
 # TAX INFORMATION
 # =============================================================================
+# Generate ownership type first as it affects owner equity
+_ownership_type = random.choice([
+    "C Corporation", "S Corporation", "LLC- C Corp", "LLC- S Corp", "Sole Proprietor"
+])
+
 TAX_INFO = {
     "federal_tax_id": generate_federal_tax_id(),
     "tax_filing_corp_name": faker.company() + " Holdings Inc",
-    "ownership_type": random.choice([
-        "C Corporation", "S Corporation", "LLC- C Corp", "LLC- S Corp", "Sole Proprietor"
-    ]),
+    "ownership_type": _ownership_type,
     "tax_filing_state": "Georgia",
     "is_corp_headquarters": True,
     "is_foreign_entity": False,
@@ -226,9 +229,16 @@ TAX_INFO = {
 
 # =============================================================================
 # OWNER EQUITY CALCULATION
+# Based on ownership type:
+# - Sole Proprietor: Owner 1 = 100%, Owner 2 = 0%
+# - Other types: Random split
 # =============================================================================
-_owner1_equity = random.randint(20, 90)
-_owner2_equity = 100 - _owner1_equity
+if _ownership_type == "Sole Proprietor":
+    _owner1_equity = 100
+    _owner2_equity = 0
+else:
+    _owner1_equity = random.randint(20, 90)
+    _owner2_equity = 100 - _owner1_equity
 
 
 # =============================================================================
@@ -298,9 +308,12 @@ TRADE_REFERENCE_INFO = {
 
 # =============================================================================
 # BILLING QUESTIONNAIRE
+# Generate merchant_type first as it affects Credit Card Underwriting
 # =============================================================================
+_merchant_type = random.choice(["internet", "moto", "retail"])
+
 BILLING_QUESTIONNAIRE_INFO = {
-    "merchant_type": random.choice(["internet", "moto", "retail"]),
+    "merchant_type": _merchant_type,
     "full_payment_upfront": True,
     "full_payment_days": str(random.randint(1, 30)),
     "partial_payment_upfront": True,
@@ -348,12 +361,30 @@ CREDIT_CARD_INFORMATION = {
 # =============================================================================
 # CREDIT CARD UNDERWRITING GENERATOR
 # =============================================================================
-def generate_credit_card_underwriting_data(business_type: str = "Retail") -> Dict[str, Any]:
-    """Generate Credit Card Underwriting data with proper business logic"""
+def generate_credit_card_underwriting_data(
+    business_type: str = "Retail",
+    merchant_type: str = "retail"
+) -> Dict[str, Any]:
+    """Generate Credit Card Underwriting data with proper business logic.
+    
+    Args:
+        business_type: The business type (e.g., "Retail", "Grocery", etc.)
+        merchant_type: The merchant type from billing questionnaire 
+                      ("internet", "moto", "retail")
+    """
     percentage_options = list(range(0, 101, 5))
     is_retail_or_grocery = business_type.lower() in ["retail", "grocery"]
+    is_internet_or_moto = merchant_type.lower() in ["internet", "moto"]
     
-    if is_retail_or_grocery:
+    # Card Not Present logic:
+    # - If merchant_type is "internet" or "moto", Card Not Present must be >= 70%
+    # - If business_type is "retail" or "grocery", Card Not Present must be <= 30%
+    if is_internet_or_moto:
+        # Internet/MOTO merchants need Card Not Present >= 70%
+        card_not_present_options = [p for p in percentage_options if p >= 70]
+        card_not_present = random.choice(card_not_present_options)
+    elif is_retail_or_grocery:
+        # Retail/Grocery merchants need Card Not Present <= 30%
         card_not_present_options = [p for p in percentage_options if p <= 30]
         card_not_present = random.choice(card_not_present_options)
     else:
@@ -455,3 +486,36 @@ SALES_REPRESENTATIVE = {"name": "DEMONET1"}
 # MERCHANT PRODUCTS
 # =============================================================================
 MERCHANT_PRODUCTS = ["Credit"]
+
+
+# =============================================================================
+# BUSINESS TYPE & GENERAL UNDERWRITING (Common across environments)
+# =============================================================================
+BUSINESS_TYPE = "Retail"
+
+GENERAL_UNDERWRITING_INFO = {
+    "business_type": BUSINESS_TYPE,
+    "sic_code": "7311",
+    "products_sold": "General retail merchandise and consumer goods",
+    "return_policy": "30 Days Money Back Guarantee",
+    "days_until_delivery": "5",
+    "seasonal_months": [],
+}
+
+
+# =============================================================================
+# CREDIT CARD UNDERWRITING (Generated using common BUSINESS_TYPE)
+# Note: This does NOT depend on BET numbers, so it can be generated here
+# =============================================================================
+CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data(
+    business_type=BUSINESS_TYPE,
+    merchant_type=_merchant_type
+)
+
+
+# =============================================================================
+# EXPORTED VARIABLES FOR ENVIRONMENT-SPECIFIC FILES
+# =============================================================================
+# These are used by osc_data_qa.py and osc_data_prod.py
+MERCHANT_TYPE = _merchant_type  # "internet", "moto", or "retail"
+OWNERSHIP_TYPE = _ownership_type  # For reference in scripts

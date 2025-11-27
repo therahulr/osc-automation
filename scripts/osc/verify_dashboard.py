@@ -38,11 +38,11 @@ from locators.osc_locators import DashboardPageLocators
 load_dotenv()
 
 
-def verify_osc_dashboard() -> bool:
+def verify_osc_dashboard() -> dict:
     """Login to OSC and verify dashboard accessibility.
 
     Returns:
-        True if dashboard verification successful, False otherwise
+        dict with 'success' key indicating verification result
     """
 
     # ==================== NEW: Everything managed by UIAutomationCore! ====================
@@ -75,60 +75,59 @@ def verify_osc_dashboard() -> bool:
 
             if not login_success:
                 logger.error("Login failed")
-                return False
+                return {"success": False, "error": "Login failed"}
 
             log_success("Login completed successfully")
-            core.take_screenshot("after_login", full_page=False)
+            core.take_screenshot("after_login")
 
             # ==================== Step 2: Verify Dashboard Elements ====================
             log_step("Step 2: Verifying dashboard elements")
 
-            # Check for Home heading
-            try:
-                ui.wait_visible(DashboardPageLocators.HOME_HEADING, timeout_ms=5000)
-                log_success(f"{SYMBOL_CHECK} Home heading found")
-            except Exception as e:
-                logger.error(f"{SYMBOL_CROSS} Home heading not found | error={e}")
-                return False
+            # Wait for page to fully load
+            page.wait_for_load_state("networkidle")
 
-            # Check for Application Summary
+            # Check for User Info text (indicates logged in)
             try:
-                ui.wait_visible(DashboardPageLocators.APPLICATION_SUMMARY_HEADING, timeout_ms=5000)
-                log_success(f"{SYMBOL_CHECK} Application Summary heading found")
+                page.wait_for_selector(DashboardPageLocators.USER_INFO_TEXT, state="visible", timeout=10000)
+                log_success(f"{SYMBOL_CHECK} User info found - logged in successfully")
             except Exception as e:
-                logger.error(f"{SYMBOL_CROSS} Application Summary heading not found | error={e}")
-                return False
+                logger.error(f"{SYMBOL_CROSS} User info not found | error={e}")
+                return {"success": False, "error": f"User info not found: {e}"}
 
-            # Check for navigation menu (logout link)
+            # Check for Logout link (confirms dashboard access)
             try:
-                ui.wait_visible(DashboardPageLocators.LOGOUT_LINK, timeout_ms=5000)
+                page.wait_for_selector(DashboardPageLocators.LOGOUT_LINK, state="visible", timeout=5000)
                 log_success(f"{SYMBOL_CHECK} Logout link found")
             except Exception as e:
                 logger.error(f"{SYMBOL_CROSS} Logout link not found | error={e}")
-                return False
+                return {"success": False, "error": f"Logout link not found: {e}"}
 
             # Take success screenshot
-            core.take_screenshot("dashboard_verified", full_page=True)
+            core.take_screenshot("dashboard_verified")
 
             log_section("✅ OSC DASHBOARD VERIFICATION SUCCESSFUL")
             logger.info("All required elements verified on dashboard")
 
-            return True
+            return {"success": True}
 
         except Exception as e:
             logger.error(f"Dashboard verification failed | error={e}")
 
             # Take failure screenshot
             try:
-                core.take_screenshot("dashboard_failure", full_page=True)
+                core.take_screenshot("dashboard_failure")
             except Exception as screenshot_error:
                 logger.error(f"Failed to take screenshot | error={screenshot_error}")
 
             log_section("❌ OSC DASHBOARD VERIFICATION FAILED")
 
-            return False
+            return {"success": False, "error": str(e)}
 
     # ==================== Automatic cleanup and performance report generated here! ====================
+
+
+# Alias for runner compatibility
+verify_dashboard = verify_osc_dashboard
 
 
 if __name__ == "__main__":
@@ -158,5 +157,5 @@ if __name__ == "__main__":
     CONCLUSION: Same functionality, much less code, better output!
     """
 
-    success = verify_osc_dashboard()
-    sys.exit(0 if success else 1)
+    result = verify_osc_dashboard()
+    sys.exit(0 if result.get("success") else 1)

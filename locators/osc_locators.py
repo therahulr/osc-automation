@@ -230,9 +230,22 @@ class NewApplicationPageLocators:
     PRODUCT_BTN_EBT = "//input[@id='ctl00_ContentPlaceHolder1_rptrProducts_ctl03_btnProduct']"
     PRODUCT_BTN_ACH = "//input[@id='ctl00_ContentPlaceHolder1_rptrProducts_ctl04_btnProduct']"
 
-    ERROR_CONTAINER = "//div[@id='divErrors' and contains(@class,'alert-error')]"
+    # ============================================
+    # VALIDATION ERRORS
+    # ============================================
+    VALIDATION_ERRORS_CONTAINER = "//div[@id='divErrors' and contains(@class,'alert-error')]"
+    VALIDATION_ERROR_ITEMS = "//div[@id='divErrors']//ul/li"
     ERROR_CLOSE_BTN = "//div[@id='divErrors']//button[@class='close']"
     ERROR_HEADER = "//div[@id='divErrors']//h4[contains(text(),'Did you forget something?')]"
+    
+    # ============================================
+    # SUCCESS TOAST NOTIFICATIONS
+    # ============================================
+    SUCCESS_TOAST = "//div[@id='myAlert' and contains(@class,'alert-success')]"
+    SUCCESS_TOAST_MESSAGE = "//div[@id='myAlert' and contains(@class,'alert-success')]/div"
+    
+    # Legacy alias for backward compatibility
+    ERROR_CONTAINER = "//div[@id='divErrors' and contains(@class,'alert-error')]"
 
 
 class ApplicationInformationLocators:

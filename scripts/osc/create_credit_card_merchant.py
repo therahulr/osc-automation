@@ -436,8 +436,28 @@ def create_credit_card_merchant():
         
         core.take_screenshot("application_saved")
 
-        # ==================== Step 20: Submit Application (COMMENTED - Enable in lower env) ====================
-        # log_step("Step 20: Submitting Application")
+        # ==================== Step 20: Validate Application ====================
+        log_step("Step 20: Validating Application")
+        
+        validation_result = new_app_page.validate_application()
+        all_results["validate_application"] = validation_result
+        
+        validation_success = validation_result.get("success", False)
+        validation_message = validation_result.get("message", "")
+        validation_errors = validation_result.get("errors", [])
+        
+        if validation_success:
+            log_success(f"Validation passed: {validation_message}")
+        else:
+            logger.error(f"Validation failed: {validation_message}")
+            if validation_errors:
+                for idx, error in enumerate(validation_errors, 1):
+                    logger.error(f"  {idx}. {error}")
+        
+        core.take_screenshot("application_validated")
+
+        # ==================== Step 21: Submit Application (COMMENTED - Enable in lower env) ====================
+        # log_step("Step 21: Submitting Application")
         # 
         # submit_result = new_app_page.submit_application()
         # all_results["submit_application"] = submit_result
@@ -489,11 +509,20 @@ def create_credit_card_merchant():
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
         # ==================== Final Summary ====================
-        log_section("APPLICATION SAVED")
+        log_section("APPLICATION SAVED & VALIDATED")
         if app_info_id:
-            logger.info(f"✅ Application is saved and AppInfoID is {app_info_id}")
+            logger.info(f"✅ AppInfoID: {app_info_id}")
         else:
-            logger.warning("Application save status unknown - AppInfoID not extracted")
+            logger.warning("⚠️ AppInfoID not extracted")
+        
+        if validation_success:
+            logger.info(f"✅ Validation: {validation_message}")
+        else:
+            logger.error(f"❌ Validation Failed: {validation_message}")
+            if validation_errors:
+                logger.error(f"   Errors ({len(validation_errors)}):")
+                for error in validation_errors:
+                    logger.error(f"   • {error}")
 
         # TODO: Add next sections (Equipment, etc.)
 
@@ -502,6 +531,11 @@ def create_credit_card_merchant():
         return {
             "results": all_results,
             "app_info_id": app_info_id,
+            "validation": {
+                "success": validation_success,
+                "message": validation_message,
+                "errors": validation_errors
+            },
             "summary": {
                 "total_success": total_success,
                 "total_fields": total_fields,
@@ -517,7 +551,19 @@ if __name__ == "__main__":
     
     if results:
         app_id = results.get('app_info_id', 'Unknown')
+        validation = results.get('validation', {})
+        
         print(f"\n✅ Merchant creation completed: {results['summary']['success_rate']} success rate")
-        print(f"📋 Application is saved and AppInfoID is {app_id}")
+        print(f"📋 AppInfoID: {app_id}")
+        
+        if validation.get('success'):
+            print(f"✅ Validation: {validation.get('message', 'Passed')}")
+        else:
+            print(f"❌ Validation Failed: {validation.get('message', 'Unknown')}")
+            errors = validation.get('errors', [])
+            if errors:
+                print(f"   Errors ({len(errors)}):")
+                for error in errors:
+                    print(f"   • {error}")
     else:
         print("\n❌ Merchant creation failed")
