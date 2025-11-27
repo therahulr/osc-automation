@@ -44,8 +44,13 @@ class BrowserManager:
         )
 
         self._playwright = sync_playwright().start()
+        
+        # Launch with maximized window (--start-maximized doesn't work reliably on Mac)
+        # We'll set viewport to screen size in new_context instead
         self._browser = self._playwright.chromium.launch(
-            headless=settings.headless, slow_mo=settings.slow_mo_ms
+            headless=settings.headless, 
+            slow_mo=settings.slow_mo_ms,
+            args=['--start-maximized'] if not settings.headless else []
         )
 
         launch_duration = time.time() - launch_start
@@ -70,6 +75,64 @@ class BrowserManager:
                         ))
             except Exception as e:
                 self._logger.debug(f"Could not track browser launch performance: {e}")
+
+    def _get_screen_viewport(self) -> dict:
+        """Get appropriate viewport size for the browser window.
+        
+        Works on macOS, Windows, and Linux.
+        
+        Returns:
+            Dictionary with width and height for a properly sized browser
+        """
+        import platform
+        system = platform.system()
+        
+        try:
+            if system == "Darwin":  # macOS
+                from AppKit import NSScreen
+                screen = NSScreen.mainScreen()
+                visible = screen.visibleFrame()  # Excludes dock and menu bar
+                width = int(visible.size.width)
+                height = int(visible.size.height)
+                self._logger.info(f"macOS screen visible area: {width}x{height}")
+                return {"width": width, "height": height}
+                
+            elif system == "Windows":
+                import ctypes
+                user32 = ctypes.windll.user32
+                # Get work area (excludes taskbar)
+                from ctypes import wintypes
+                class RECT(ctypes.Structure):
+                    _fields_ = [("left", wintypes.LONG), ("top", wintypes.LONG),
+                                ("right", wintypes.LONG), ("bottom", wintypes.LONG)]
+                rect = RECT()
+                # SPI_GETWORKAREA = 0x0030
+                ctypes.windll.user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(rect), 0)
+                width = rect.right - rect.left
+                height = rect.bottom - rect.top
+                self._logger.info(f"Windows screen work area: {width}x{height}")
+                return {"width": width, "height": height}
+                
+            elif system == "Linux":
+                import subprocess
+                # Try xrandr for Linux
+                result = subprocess.run(['xrandr'], capture_output=True, text=True, timeout=5)
+                import re
+                match = re.search(r'(\d+)x(\d+)\+0\+0', result.stdout)
+                if match:
+                    width = int(match.group(1))
+                    height = int(match.group(2)) - 50  # Account for taskbar
+                    self._logger.info(f"Linux screen: {width}x{height}")
+                    return {"width": width, "height": height}
+                    
+        except ImportError as e:
+            self._logger.debug(f"Screen detection library not available: {e}")
+        except Exception as e:
+            self._logger.debug(f"Could not detect screen size: {e}")
+        
+        # Fallback: Use standard resolution that works on most screens
+        self._logger.info("Using default viewport: 1280x800")
+        return {"width": 1280, "height": 800}
 
     def new_context(
         self,
@@ -98,9 +161,9 @@ class BrowserManager:
         # Prepare downloads directory
         downloads_path = ensure_dir(settings.downloads_dir)
 
-        # Default to maximized viewport
+        # Get screen size for maximized viewport (like Selenium's maximize_window)
         if viewport is None:
-            viewport = {"width": 1920, "height": 1080}
+            viewport = self._get_screen_viewport()
 
         context_kwargs = {
             "viewport": viewport,
@@ -147,6 +210,29 @@ class BrowserManager:
         # Set default timeouts from settings
         page.set_default_timeout(settings.default_timeout_ms)
         page.set_default_navigation_timeout(settings.nav_timeout_ms)
+        
+        # Position window at top-left corner (0, 0) using CDP
+        try:
+            viewport = self._get_screen_viewport()
+            cdp = context.new_cdp_session(page)
+            # Get window ID first
+            window_info = cdp.send("Browser.getWindowForTarget")
+            window_id = window_info.get("windowId")
+            if window_id:
+                # Set window bounds: position at (0, 0) and set size
+                cdp.send("Browser.setWindowBounds", {
+                    "windowId": window_id,
+                    "bounds": {
+                        "left": 0,
+                        "top": 0,
+                        "width": viewport["width"],
+                        "height": viewport["height"],
+                        "windowState": "normal"
+                    }
+                })
+                self._logger.info(f"Window positioned at (0, 0) with size {viewport['width']}x{viewport['height']}")
+        except Exception as e:
+            self._logger.debug(f"Could not position window via CDP: {e}")
         
         page_creation_time = time.time() - page_start
         self._logger.debug(f"Page created in {page_creation_time:.3f}s")

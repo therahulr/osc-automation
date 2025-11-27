@@ -64,18 +64,18 @@ def get_added_terminal_count() -> int:
 # Each terminal contains ALL data for wizard steps 1-6
 # =====================================================
 
-SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
+SAGE_50_TERMINAL: Dict[str, Any] = {
     # Terminal identifier
-    "name": "Sage Virtual Terminal",
+    "name": "Sage 50",
     
     # ===== Step 1: Select Type =====
-    "part_type": "Gateway",
+    "part_type": "Software",
     "provider": "Sage Payment Solutions",
     "part_condition": "New",
     
     # ===== Step 2: Select Terminal =====
-    # Part ID to select from the terminal grid
-    "part_id": "",  # Will be determined based on available options
+    # Part ID to select from the terminal grid (exact text from PartID column)
+    "part_id": "Sage 50",
     
     # ===== Step 3: Terminal Details =====
     "serial_number": "",  # Optional - leave empty for auto-generation
@@ -105,7 +105,7 @@ SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
 # List of terminal configurations to process
 # =====================================================
 TERMINALS_TO_ADD: List[Dict[str, Any]] = [
-    SAGE_VIRTUAL_TERMINAL,
+    SAGE_50_TERMINAL,
 ]
 
 
@@ -124,7 +124,7 @@ def get_terminal_by_name(name: str) -> Optional[Dict[str, Any]]:
         Terminal configuration dict or None if not found
     """
     # Search in common terminals
-    all_terminals = [SAGE_VIRTUAL_TERMINAL]
+    all_terminals = [SAGE_50_TERMINAL]
     
     for terminal in all_terminals:
         if terminal.get("name") == name:

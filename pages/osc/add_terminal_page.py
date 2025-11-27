@@ -119,7 +119,8 @@ class AddTerminalPage:
             2: TerminalWizardLocators.STEP_2_HEADING,
             3: TerminalWizardLocators.STEP_3_HEADING,
             4: TerminalWizardLocators.STEP_4_HEADING,
-            # Steps 5 and 6 can be added as needed
+            5: TerminalWizardLocators.STEP_5_HEADING,
+            6: TerminalWizardLocators.STEP_6_HEADING,
         }
         
         header_locator = header_locators.get(step_number)
@@ -335,38 +336,173 @@ class AddTerminalPage:
             return False
     
     # =========================================================================
-    # FULL WIZARD FLOW (Step 1 only for now)
+    # STEP 2: SELECT PART
     # =========================================================================
     
-    def add_terminal_step_1(self, terminal_config: Dict[str, Any]) -> bool:
+    def fill_step_2(self, terminal_config: Dict[str, Any]) -> bool:
         """
-        Open wizard and complete Step 1.
+        Fill Step 2 of the Terminal Wizard: Select Part.
         
-        This is the main entry point for adding a terminal through Step 1.
+        This step involves:
+        1. Verifying Step 2 header is visible
+        2. Finding the Part ID in the grid (scroll within modal if needed)
+        3. Selecting the checkbox for the Part ID
+        
+        Args:
+            terminal_config: Dict with 'part_id' key for the part to select
+                Example: {"part_id": "Sage 50", ...}
+            
+        Returns:
+            bool: True if Part ID found and selected, False otherwise
+        """
+        self.logger.info("=== Step 2: Select Part ===")
+        
+        # Verify we're on Step 2
+        if not self.verify_step_header(2, timeout=self.SHORT_TIMEOUT):
+            self.logger.error("Not on Step 2 - cannot proceed")
+            return False
+        
+        # Extract part_id from config
+        part_id = terminal_config.get("part_id", "")
+        part_type = terminal_config.get("part_type", "Unknown")
+        provider = terminal_config.get("provider", "Unknown")
+        
+        if not part_id:
+            self.logger.error("No part_id specified in terminal config")
+            return False
+        
+        self.logger.info(f"Looking for Part ID: '{part_id}' (Type: {part_type}, Provider: {provider})")
+        
+        # Build the checkbox locator for this part_id
+        checkbox_locator = TerminalWizardLocators.STEP_2_PART_ID_CHECKBOX(part_id)
+        
+        try:
+            # First, try to find the checkbox directly
+            checkbox = self.page.locator(checkbox_locator)
+            
+            # Check if element exists in DOM
+            if checkbox.count() == 0:
+                self.logger.warning(f"Part ID '{part_id}' not found in grid")
+                self.logger.warning(f"This part may not be available for Part Type: '{part_type}' and Provider: '{provider}'")
+                return False
+            
+            # Scroll the checkbox into view within the modal
+            self.logger.debug(f"Found Part ID '{part_id}', scrolling into view...")
+            checkbox.scroll_into_view_if_needed()
+            time.sleep(0.3)
+            
+            # Wait for it to be visible
+            checkbox.wait_for(state="visible", timeout=self.SHORT_TIMEOUT)
+            
+            # Check if already selected
+            if checkbox.is_checked():
+                self.logger.info(f"Part ID '{part_id}' already selected")
+            else:
+                # Click to select
+                checkbox.click()
+                self.logger.info(f"Selected Part ID: '{part_id}'")
+            
+            time.sleep(0.3)
+            return True
+            
+        except TimeoutError:
+            self.logger.error(f"Part ID '{part_id}' not visible within timeout")
+            self.logger.error(f"This part may not be available for Part Type: '{part_type}' and Provider: '{provider}'")
+            return False
+        except Exception as e:
+            self.logger.error(f"Failed to select Part ID '{part_id}': {e}")
+            return False
+    
+    def complete_step_2(self, terminal_config: Dict[str, Any]) -> bool:
+        """
+        Complete Step 2 and navigate to Step 3.
+        
+        This includes:
+        1. Selecting the Part ID from the grid
+        2. Clicking Next button
+        3. Waiting for processing
+        4. Verifying Step 3 header
+        
+        Args:
+            terminal_config: Dict with terminal configuration
+            
+        Returns:
+            bool: True if successfully moved to Step 3, False otherwise
+        """
+        # Fill Step 2 (select part)
+        if not self.fill_step_2(terminal_config):
+            return False
+        
+        # Click Next button
+        self.logger.info("Clicking Next button to proceed to Step 3...")
+        
+        try:
+            next_button = self.page.locator(TerminalWizardLocators.STEP_2_NEXT_BUTTON)
+            next_button.scroll_into_view_if_needed()
+            next_button.click()
+            
+            # Wait for processing banner to appear and disappear
+            time.sleep(0.5)
+            self.wait_for_processing_banner_hidden(timeout=self.LONG_TIMEOUT)
+            
+            # Verify Step 3 header
+            if self.verify_step_header(3, timeout=self.DEFAULT_TIMEOUT):
+                self.logger.info("Successfully moved to Step 3")
+                return True
+            else:
+                self.logger.error("Step 3 header not visible after clicking Next")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to complete Step 2: {e}")
+            return False
+    
+    # =========================================================================
+    # FULL WIZARD FLOW
+    # =========================================================================
+    
+    def add_terminal_steps_1_2(self, terminal_config: Dict[str, Any]) -> Dict[str, bool]:
+        """
+        Open wizard and complete Steps 1 and 2.
+        
+        This method:
+        1. Opens the Terminal Wizard
+        2. Completes Step 1 (Select Type) and moves to Step 2
+        3. Completes Step 2 (Select Part) and moves to Step 3
         
         Args:
             terminal_config: Terminal configuration dict with all step data.
             
         Returns:
-            bool: True if Step 1 completed successfully, False otherwise
+            Dict with step results: {"step1": bool, "step2": bool}
         """
         terminal_name = terminal_config.get("name", "Unknown Terminal")
+        results = {"step1": False, "step2": False}
         
         self.logger.info("=" * 60)
-        self.logger.info(f"STARTING TERMINAL WIZARD - STEP 1: {terminal_name}")
+        self.logger.info(f"STARTING TERMINAL WIZARD: {terminal_name}")
         self.logger.info(f"Terminal Config: {terminal_config}")
         self.logger.info("=" * 60)
         
         # Open the wizard
         if not self.open_terminal_wizard():
-            return False
+            return results
         
         # Complete Step 1 and move to Step 2
         if not self.complete_step_1(terminal_config):
-            return False
+            return results
         
-        self.logger.info(f"Terminal Wizard Step 1 completed successfully for '{terminal_name}' - now on Step 2")
-        return True
+        results["step1"] = True
+        self.logger.info(f"✓ Step 1 completed for '{terminal_name}' - now on Step 2")
+        
+        # Complete Step 2 and move to Step 3
+        if not self.complete_step_2(terminal_config):
+            return results
+        
+        results["step2"] = True
+        self.logger.info(f"✓ Step 2 completed for '{terminal_name}' - now on Step 3")
+        
+        return results
     
     def add_terminals(self, terminals_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -395,24 +531,33 @@ class AddTerminalPage:
             
             self.logger.info(f"\n--- Adding Terminal {idx}/{len(terminals_list)}: {terminal_name} ---")
             
-            # Run Step 1
-            step1_success = self.add_terminal_step_1(terminal_config)
+            # Run Steps 1 and 2
+            step_results = self.add_terminal_steps_1_2(terminal_config)
             
-            if step1_success:
+            if step_results["step1"] and step_results["step2"]:
                 success_count += 1
-                results[terminal_name] = {"step1": True, "status": "step1_complete"}
+                results[terminal_name] = {
+                    "step1": True, 
+                    "step2": True, 
+                    "status": "step2_complete"
+                }
                 
                 # Track successfully added terminal
                 add_to_added_terminals(terminal_config, terminal_name)
                 
-                self.logger.info(f"✓ Terminal '{terminal_name}' Step 1 completed")
+                self.logger.info(f"✓ Terminal '{terminal_name}' Steps 1-2 completed")
                 
-                # Cancel wizard for now (since only Step 1 is implemented)
+                # Cancel wizard for now (since only Steps 1-2 are implemented)
                 self.cancel_wizard()
             else:
                 failed_count += 1
-                results[terminal_name] = {"step1": False, "status": "failed"}
-                self.logger.error(f"✗ Terminal '{terminal_name}' Step 1 failed")
+                results[terminal_name] = {
+                    "step1": step_results["step1"], 
+                    "step2": step_results["step2"],
+                    "status": "failed"
+                }
+                failed_step = "Step 1" if not step_results["step1"] else "Step 2"
+                self.logger.error(f"✗ Terminal '{terminal_name}' failed at {failed_step}")
                 
                 # Try to cancel wizard if it's open
                 self.cancel_wizard()

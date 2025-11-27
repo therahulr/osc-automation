@@ -878,6 +878,9 @@ class TerminalWizardLocators:
     # ==================================================================
     # STEP 5: MODAL
     # ==================================================================
+    
+    STEP_5_HEADING = "//h4[normalize-space(text())='Step 5 of 6 : Enter Billing / Shipping Information']"
+    
     # ============================
     # BILLING INFORMATION
     # ============================
@@ -917,6 +920,8 @@ class TerminalWizardLocators:
     # ==================================================================
     # STEP 6: FINAL STEP
     # ==================================================================
+    
+    STEP_6_HEADING = "//h4[normalize-space(text())='Step 6 of 6 : Review']"
 
     STEP_6_TERMINAL_VALUE = (
         "//span[@id='ctl00_ContentPlaceHolder1_ctrlApplicationEquipment21_TerminalWizard_lblTerminalReview']"

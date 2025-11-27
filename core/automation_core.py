@@ -244,12 +244,13 @@ class UIAutomationCore:
             self._logger.error(f"Failed to generate performance report: {e}")
             return None
 
-    def take_screenshot(self, name: str = "screenshot", full_page: bool = True) -> Path:
-        """Take a screenshot of the current page.
+    def take_screenshot(self, name: str = "screenshot", page: Optional[Page] = None) -> Path:
+        """Take a screenshot of the current viewport (visible area only).
 
         Args:
             name: Screenshot file name (without extension)
-            full_page: Capture full page or just viewport
+            page: Optional specific page to screenshot. If None, uses the active page
+                  from the browser context (handles multiple tabs correctly).
 
         Returns:
             Path to saved screenshot
@@ -260,8 +261,55 @@ class UIAutomationCore:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_path = screenshots_dir / f"{name}_{timestamp}.png"
 
-        self.page.screenshot(path=str(screenshot_path), full_page=full_page)
+        # Use provided page, or get the active page from context
+        target_page = page
+        if target_page is None:
+            # Try to get the most recently active page from context
+            if self._context and self._context.pages:
+                # Get the last page in the context (most recently opened/active)
+                target_page = self._context.pages[-1]
+                self._logger.debug(f"Using active page from context: {target_page.url[:50]}...")
+            else:
+                target_page = self.page
+        
+        # Take viewport screenshot only (not full page)
+        target_page.screenshot(path=str(screenshot_path), full_page=False)
         self._logger.info(f"Screenshot saved: {screenshot_path}")
+
+        return screenshot_path
+
+    def take_full_page_screenshot(self, name: str = "full_page", page: Optional[Page] = None) -> Path:
+        """Take a full page screenshot (scrolls through entire page).
+        
+        Use this for final documentation screenshots after automation completes.
+        For step-by-step screenshots during automation, use take_screenshot() instead.
+
+        Args:
+            name: Screenshot file name (without extension)
+            page: Optional specific page to screenshot. If None, uses the active page
+                  from the browser context (handles multiple tabs correctly).
+
+        Returns:
+            Path to saved screenshot
+        """
+        screenshots_dir = Path.cwd() / "screenshots" / self._app_name
+        screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        screenshot_path = screenshots_dir / f"{name}_{timestamp}.png"
+
+        # Use provided page, or get the active page from context
+        target_page = page
+        if target_page is None:
+            if self._context and self._context.pages:
+                target_page = self._context.pages[-1]
+                self._logger.debug(f"Using active page for full screenshot: {target_page.url[:50]}...")
+            else:
+                target_page = self.page
+        
+        # Take full page screenshot (scrolls through entire page)
+        target_page.screenshot(path=str(screenshot_path), full_page=True)
+        self._logger.info(f"Full page screenshot saved: {screenshot_path}")
 
         return screenshot_path
 
