@@ -150,13 +150,35 @@ SAGE_50_TERMINAL: Dict[str, Any] = {
     # No data needed - just verification and finish
 }
 
+SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
+    "name": "Sage Virtual Terminal",
+    "part_type": "Gateway",
+    "provider": "Sage Payment Solutions",
+    "part_condition": "New",
+    "part_id": "Sage Virtual Terminal",
+    "serial_number": "",
+    "merchant_sale_price": "random",
+    "file_built_by": "",
+    "reprogram_fee": "random",
+    "reprogram_fee_amount": "",
+    "welcome_kit_fee": "random",
+    "welcome_kit_fee_amount": "",
+    "terminal_program": "VAR / STAGE",
+    "front_end_processor": "",
+    "bill_to": "Location",
+    "ship_to": "Location",
+    "ship_method": "Ground",
+}
+
+
+
 
 # =====================================================
 # TERMINALS TO ADD
 # List of terminal configurations to process
 # =====================================================
 TERMINALS_TO_ADD: List[Dict[str, Any]] = [
-    SAGE_50_TERMINAL,
+    SAGE_50_TERMINAL, SAGE_VIRTUAL_TERMINAL
 ]
 
 
