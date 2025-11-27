@@ -6,8 +6,8 @@ from typing import Tuple, Literal
 from core.utils import get_env, get_env_int
 
 
-# Valid data environments
-DataEnvironment = Literal["dev", "qa", "prod"]
+# Valid data environments (qa or prod only)
+DataEnvironment = Literal["qa", "prod"]
 
 
 @dataclass
@@ -21,7 +21,7 @@ class OSCSettings:
         quote_path: Quote creation endpoint path
         timeout_ms: OSC-specific timeout override (optional)
         environment: Current environment (prod/qa)
-        data_env: Test data environment to use (dev/qa/prod)
+        data_env: Test data environment to use (qa/prod)
     """
 
     base_url: str
@@ -43,13 +43,12 @@ class OSCSettings:
         self.timeout_ms = get_env_int("OSC_TIMEOUT_MS", default=30000)
         self.environment = get_env("OSC_ENV", "prod").lower()
         
-        # Data environment: which test data file to use
-        # Can be: dev, qa, prod (defaults to same as environment)
+        # Data environment: qa or prod (defaults to same as environment)
         self.data_env = get_env("OSC_DATA_ENV", self.environment).lower()
         
-        # Validate data_env
-        if self.data_env not in ("dev", "qa", "prod"):
-            self.data_env = "prod"  # fallback to prod
+        # Validate data_env (only qa or prod allowed)
+        if self.data_env not in ("qa", "prod"):
+            self.data_env = "prod"
 
     @property
     def credentials(self) -> Tuple[str, str]:
@@ -96,10 +95,8 @@ class OSCSettings:
         Get the data module name based on data_env.
         
         Returns:
-            str: Module name like 'osc_data_qa', 'osc_data_dev', or 'osc_data' (prod)
+            str: Module name 'osc_data_qa' or 'osc_data_prod'
         """
-        if self.data_env == "prod":
-            return "osc_data"  # Default/prod uses osc_data.py
         return f"osc_data_{self.data_env}"
 
 
@@ -108,9 +105,8 @@ def get_osc_data():
     Dynamically load the OSC data module based on configured data environment.
     
     This allows switching between different test data sets:
-    - OSC_DATA_ENV=prod  → data/osc/osc_data.py (default)
+    - OSC_DATA_ENV=prod  → data/osc/osc_data_prod.py
     - OSC_DATA_ENV=qa    → data/osc/osc_data_qa.py
-    - OSC_DATA_ENV=dev   → data/osc/osc_data_dev.py
     
     Returns:
         module: The loaded data module with all test data exports
@@ -135,11 +131,11 @@ def get_osc_data():
         data_module = importlib.import_module(full_module_path)
         return data_module
     except ImportError as e:
-        # Fallback to default prod data if env-specific doesn't exist
-        if module_name != "osc_data":
+        # Fallback to prod data if env-specific doesn't exist
+        if module_name != "osc_data_prod":
             print(f"Warning: Data module '{full_module_path}' not found. "
-                  f"Falling back to 'data.osc.osc_data'. Error: {e}")
-            return importlib.import_module("data.osc.osc_data")
+                  f"Falling back to 'data.osc.osc_data_prod'. Error: {e}")
+            return importlib.import_module("data.osc.osc_data_prod")
         raise
 
 

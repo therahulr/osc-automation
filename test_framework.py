@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 
 from core.logger import setup_logging, get_logger
 from utils.config import config
-from data.osc.osc_data import OSC_DATA
+from config.osc.config import get_osc_data
 from utils.custom_data import CustomDataManager
 
 
@@ -30,11 +30,12 @@ async def test_imports():
         logger.info("✅ Page classes imported successfully")
         
         # Test script imports
-        from scripts.osc.create_credit_card_merchant import CreditCardMerchantWorkflow
+        from scripts.osc.create_credit_card_merchant import create_credit_card_merchant
         logger.info("✅ Workflow script imported successfully")
         
         # Test data access
-        sales_rep = OSC_DATA.get('sales_rep.name')
+        osc_data = get_osc_data()
+        sales_rep = osc_data.SALES_REPRESENTATIVE.get('name', 'N/A')
         logger.info(f"✅ Data access working: {sales_rep}")
         
         # Test config access
@@ -88,8 +89,9 @@ def test_data_system():
     
     try:
         # Test default data access
-        merchant_name = OSC_DATA.get('merchant.business_name')
-        principal_name = OSC_DATA.get('principal.first_name')
+        osc_data = get_osc_data()
+        merchant_name = osc_data.CORPORATE_INFO.get('business_name', 'N/A')
+        principal_name = osc_data.OWNER1_INFO.get('first_name', 'N/A')
         
         logger.info(f"Merchant name: {merchant_name}")
         logger.info(f"Principal name: {principal_name}")

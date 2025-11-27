@@ -1,7 +1,7 @@
 """
-OSC Test Data - QA Environment
+OSC Test Data - PROD Environment
 
-QA environment test data with QA-specific BET numbers and business type.
+Production environment test data with PROD-specific BET numbers and business type.
 Imports all common data from common_test_data.py.
 """
 
@@ -43,13 +43,13 @@ from data.osc.common_test_data import (
 
 
 # =============================================================================
-# QA ENVIRONMENT SPECIFIC DATA
+# PROD ENVIRONMENT SPECIFIC DATA
 # =============================================================================
 
-# Business type for QA
+# Business type for PROD
 BUSINESS_TYPE = "Retail"
 
-# General Underwriting with QA business type
+# General Underwriting with PROD business type
 GENERAL_UNDERWRITING_INFO = {
     "business_type": BUSINESS_TYPE,
     "sic_code": "7311",
@@ -59,12 +59,12 @@ GENERAL_UNDERWRITING_INFO = {
     "seasonal_months": [],
 }
 
-# BET Numbers for QA environment
+# BET Numbers for PROD environment
 BET_NUMBERS = {
-    "visa": "8693",
-    "mastercard": "6693",
-    "discover": "3192",
-    "amex": "4884",
+    "visa": "7291",
+    "mastercard": "5291",
+    "discover": "3191",
+    "amex": "4128",
 }
 
 # Generate environment-specific data

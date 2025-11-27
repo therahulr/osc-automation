@@ -1380,14 +1380,18 @@ class EquipmentTableLocators:
     # MAIN TABLE
     # ================
     TABLE = "//table[@id='ctl00_ContentPlaceHolder1_ctrlApplicationEquipment21_gvEquipment']"
+    
+    # No configured equipment message
+    NO_CONFIGURED_TERMINAL_TEXT = (
+        "//div[@class='alert' and contains(normalize-space(),'You currently have no configured Equipment.')]"
+    )
 
     # ================
     # STATIC ROW LOCATORS
     # ================
     # All terminal rows (= top-level equipment)
     ALL_TERMINALS = (
-        "//table[@id='ctl00_ContentPlaceHolder1_ctrlApplicationEquipment21_gvEquipment']"
-        "//tr[@datakeys]"
+        "//table[@id='ctl00_ContentPlaceHolder1_ctrlApplicationEquipment21_gvEquipment']//tr[@datakeys]"
     )
 
     # AddOns under a terminal row

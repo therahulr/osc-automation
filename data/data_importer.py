@@ -2,20 +2,20 @@
 Data importer for OSC automation
 """
 
-from data.osc.osc_data import SALES_REPRESENTATIVE, MERCHANT_INFO, BUSINESS_ADDRESS
+from config.osc.config import get_osc_data
 
 
 class DataImporter:
     """Centralized data access for automation"""
     
-    @staticmethod
-    def get_sales_rep_name() -> str:
-        return SALES_REPRESENTATIVE.get("name", "DEMONET1")
+    def __init__(self):
+        self._data = get_osc_data()
     
-    @staticmethod
-    def get_merchant_info() -> dict:
-        return MERCHANT_INFO
+    def get_sales_rep_name(self) -> str:
+        return self._data.SALES_REPRESENTATIVE.get("name", "DEMONET1")
     
-    @staticmethod
-    def get_business_address() -> dict:
-        return BUSINESS_ADDRESS
+    def get_corporate_info(self) -> dict:
+        return self._data.CORPORATE_INFO
+    
+    def get_location_info(self) -> dict:
+        return self._data.LOCATION_INFO

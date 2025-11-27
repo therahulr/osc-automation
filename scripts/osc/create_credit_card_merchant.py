@@ -29,16 +29,27 @@ BENEFITS:
 
 from core import UIAutomationCore, log_step, log_success, log_section
 
-from config.osc.config import osc_settings
+from config.osc.config import osc_settings, get_osc_data
 from pages.osc.login_page import LoginPage
 from pages.osc.navigation_steps import NavigationSteps
 from pages.osc.new_application_page import NewApplicationPage
-from data.osc.osc_data import (
-    CORPORATE_INFO, LOCATION_INFO, TAX_INFO, OWNER1_INFO, OWNER2_INFO,
-    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO, BILLING_QUESTIONNAIRE_INFO,
-    BANK_INFORMATION, CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
-    CREDIT_CARD_UNDERWRITING, CREDIT_CARD_INTERCHANGE
-)
+
+# Load environment-specific test data
+_data = get_osc_data()
+CORPORATE_INFO = _data.CORPORATE_INFO
+LOCATION_INFO = _data.LOCATION_INFO
+TAX_INFO = _data.TAX_INFO
+OWNER1_INFO = _data.OWNER1_INFO
+OWNER2_INFO = _data.OWNER2_INFO
+TRADE_REFERENCE_INFO = _data.TRADE_REFERENCE_INFO
+GENERAL_UNDERWRITING_INFO = _data.GENERAL_UNDERWRITING_INFO
+BILLING_QUESTIONNAIRE_INFO = _data.BILLING_QUESTIONNAIRE_INFO
+BANK_INFORMATION = _data.BANK_INFORMATION
+CREDIT_CARD_INFORMATION = _data.CREDIT_CARD_INFORMATION
+CREDIT_CARD_SERVICES = _data.CREDIT_CARD_SERVICES
+CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
+CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
+
 import time
 
 def create_credit_card_merchant():

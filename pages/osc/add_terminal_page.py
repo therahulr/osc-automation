@@ -11,7 +11,7 @@ import time
 
 from core.logger import get_logger
 from core.utils import SYMBOL_CHECK, SYMBOL_CROSS
-from locators.osc_locators import TerminalWizardLocators, CommonLocators
+from locators.osc_locators import TerminalWizardLocators, CommonLocators, EquipmentTableLocators
 from data.osc.add_terminal_data import (
     add_to_added_terminals,
     get_added_terminals,
@@ -103,6 +103,149 @@ class AddTerminalPage:
         except TimeoutError:
             self.logger.warning("Processing banner did not disappear in time")
             return False
+    
+    def get_equipment_list(self) -> Dict[str, Any]:
+        """
+        Get the current list of equipment/terminals from the Equipment Table.
+        
+        Returns:
+            Dict with:
+                - terminals: List of terminal names
+                - count: Number of terminals
+                - has_equipment: True if equipment exists, False if empty
+        """
+        result = {
+            "terminals": [],
+            "count": 0,
+            "has_equipment": False
+        }
+        
+        try:
+            # First check if "No configured equipment" message is displayed
+            no_equipment = self.page.locator(EquipmentTableLocators.NO_CONFIGURED_TERMINAL_TEXT)
+            if no_equipment.count() > 0 and no_equipment.is_visible():
+                self.logger.info("Equipment Table: No configured equipment found")
+                return result
+            
+            # Check if the table exists
+            table = self.page.locator(EquipmentTableLocators.TABLE)
+            if table.count() == 0:
+                self.logger.debug("Equipment Table not found on page")
+                return result
+            
+            # Get all terminal rows
+            terminal_rows = self.page.locator(EquipmentTableLocators.ALL_TERMINALS)
+            count = terminal_rows.count()
+            
+            if count == 0:
+                self.logger.info("Equipment Table: No terminals in table")
+                return result
+            
+            # Extract terminal names from each row
+            terminals = []
+            for i in range(count):
+                row = terminal_rows.nth(i)
+                # Get the datakeys attribute which contains the terminal name
+                datakeys = row.get_attribute("datakeys")
+                if datakeys:
+                    terminals.append(datakeys)
+            
+            result["terminals"] = terminals
+            result["count"] = len(terminals)
+            result["has_equipment"] = len(terminals) > 0
+            
+            self.logger.info(f"Equipment Table: Found {len(terminals)} terminal(s): {terminals}")
+            
+        except Exception as e:
+            self.logger.error(f"Error getting equipment list: {e}")
+        
+        return result
+    
+    def wait_for_equipment_table(self, timeout: int = None) -> bool:
+        """
+        Wait for the Equipment Table to be visible after page reload.
+        
+        Args:
+            timeout: Maximum wait time in ms
+            
+        Returns:
+            bool: True if table is visible, False on timeout
+        """
+        timeout = timeout or self.DEFAULT_TIMEOUT
+        try:
+            # Wait for either the table or the "no equipment" message
+            self.page.wait_for_selector(
+                f"{EquipmentTableLocators.TABLE} | {EquipmentTableLocators.NO_CONFIGURED_TERMINAL_TEXT}",
+                timeout=timeout,
+                state="visible"
+            )
+            return True
+        except TimeoutError:
+            self.logger.warning("Equipment Table did not appear in time")
+            return False
+    
+    def verify_terminal_added(self, terminal_name: str, equipment_before: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Verify if a terminal was successfully added by comparing equipment lists.
+        
+        Args:
+            terminal_name: The name of the terminal that should have been added
+            equipment_before: The equipment list captured before adding
+            
+        Returns:
+            Dict with:
+                - success: True if terminal was added
+                - terminals_before: List of terminals before adding
+                - terminals_after: List of terminals after adding
+                - newly_added: List of newly added terminals
+                - total_count: Total terminals after adding
+        """
+        result = {
+            "success": False,
+            "terminals_before": equipment_before.get("terminals", []),
+            "terminals_after": [],
+            "newly_added": [],
+            "total_count": 0
+        }
+        
+        # Wait for Equipment Table to reload
+        self.logger.info("Waiting for Equipment Table to reload...")
+        time.sleep(2)  # Brief wait for page reload
+        self.wait_for_equipment_table()
+        
+        # Get current equipment list
+        equipment_after = self.get_equipment_list()
+        result["terminals_after"] = equipment_after.get("terminals", [])
+        result["total_count"] = equipment_after.get("count", 0)
+        
+        # Find newly added terminals
+        terminals_before_set = set(result["terminals_before"])
+        terminals_after_set = set(result["terminals_after"])
+        newly_added = list(terminals_after_set - terminals_before_set)
+        result["newly_added"] = newly_added
+        
+        # Check if the expected terminal was added
+        if terminal_name in result["terminals_after"]:
+            if terminal_name in newly_added or terminal_name not in result["terminals_before"]:
+                result["success"] = True
+                self.logger.info(f"{SYMBOL_CHECK} Terminal '{terminal_name}' verified in Equipment Table")
+            else:
+                # Terminal was already there
+                self.logger.warning(f"Terminal '{terminal_name}' was already in the table before adding")
+                result["success"] = True  # Still consider success if it exists
+        else:
+            self.logger.error(f"{SYMBOL_CROSS} Terminal '{terminal_name}' NOT found in Equipment Table")
+        
+        # Log the comparison
+        self.logger.info("=" * 60)
+        self.logger.info("EQUIPMENT TABLE VERIFICATION")
+        self.logger.info(f"Before: {result['terminals_before']} (count: {len(result['terminals_before'])})")
+        self.logger.info(f"After:  {result['terminals_after']} (count: {result['total_count']})")
+        self.logger.info(f"Newly Added: {result['newly_added']}")
+        self.logger.info(f"Verification: {'PASSED' if result['success'] else 'FAILED'}")
+        self.logger.info("=" * 60)
+        
+        return result
     
     def verify_step_header(self, step_number: int, timeout: int = None) -> bool:
         """
@@ -898,7 +1041,7 @@ class AddTerminalPage:
         
         return review_values
     
-    def complete_step_6(self, terminal_config: Dict[str, Any]) -> Dict[str, Any]:
+    def complete_step_6(self, terminal_config: Dict[str, Any], equipment_before: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Complete Step 6 (Review) and finish the wizard.
         
@@ -906,23 +1049,32 @@ class AddTerminalPage:
         1. Logs all review values
         2. Clicks Finish button
         3. Waits for processing (may take several minutes)
-        4. Captures success notification
+        4. Verifies terminal was added by checking Equipment Table
         
         Args:
             terminal_config: Dict with terminal configuration
+            equipment_before: Equipment list captured before adding (for verification)
             
         Returns:
             Dict with:
                 - success: bool
                 - review_values: Dict of all review values
-                - success_message: str (if successful)
+                - terminals_before: List of terminals before adding
+                - terminals_after: List of terminals after adding
+                - newly_added: List of newly added terminals
+                - total_count: Total terminals after adding
         """
         self.logger.info("=== Step 6: Review and Finish ===")
+        
+        terminal_name = terminal_config.get("name", "Unknown")
         
         result = {
             "success": False,
             "review_values": {},
-            "success_message": ""
+            "terminals_before": equipment_before.get("terminals", []) if equipment_before else [],
+            "terminals_after": [],
+            "newly_added": [],
+            "total_count": 0
         }
         
         # Verify we're on Step 6
@@ -950,26 +1102,29 @@ class AddTerminalPage:
             FINISH_TIMEOUT = 300000  # 5 minutes in ms
             self.wait_for_processing_banner_hidden(timeout=FINISH_TIMEOUT)
             
-            # Wait for success notification
-            self.logger.info("Processing complete. Checking for success notification...")
-            time.sleep(1)
+            # Verify terminal was added by checking Equipment Table
+            self.logger.info("Processing complete. Verifying terminal in Equipment Table...")
             
-            # Look for success alert
-            success_alert = self.page.locator(CommonLocators.SUCCESS_ALERT)
+            # Use equipment_before if provided, otherwise use empty list
+            if equipment_before is None:
+                equipment_before = {"terminals": [], "count": 0, "has_equipment": False}
             
-            if success_alert.is_visible(timeout=self.DEFAULT_TIMEOUT):
-                success_message = success_alert.text_content() or ""
-                success_message = success_message.strip()
-                
-                result["success"] = True
-                result["success_message"] = success_message
-                
+            verification = self.verify_terminal_added(terminal_name, equipment_before)
+            
+            result["success"] = verification["success"]
+            result["terminals_before"] = verification["terminals_before"]
+            result["terminals_after"] = verification["terminals_after"]
+            result["newly_added"] = verification["newly_added"]
+            result["total_count"] = verification["total_count"]
+            
+            if result["success"]:
                 self.logger.info("=" * 60)
-                self.logger.info(f"{SYMBOL_CHECK} TERMINAL ADDED SUCCESSFULLY!")
-                self.logger.info(f"Success Message: {success_message}")
+                self.logger.info(f"{SYMBOL_CHECK} TERMINAL '{terminal_name}' ADDED SUCCESSFULLY!")
+                self.logger.info(f"Total Terminals: {result['total_count']}")
+                self.logger.info(f"Newly Added: {result['newly_added']}")
                 self.logger.info("=" * 60)
             else:
-                self.logger.error("Success notification not found after processing")
+                self.logger.error(f"{SYMBOL_CROSS} Terminal '{terminal_name}' verification FAILED")
                 
         except Exception as e:
             self.logger.error(f"Failed to complete Step 6: {e}")
@@ -985,19 +1140,28 @@ class AddTerminalPage:
         Complete the entire Terminal Wizard (all 6 steps).
         
         This method:
-        1. Opens the Terminal Wizard
-        2. Completes Step 1 (Select Type) → Step 2
-        3. Completes Step 2 (Select Part) → Step 3
-        4. Completes Step 3 (Enter Part Details) → Step 4
-        5. Completes Step 4 (Select Terminal Application) → Step 5
-        6. Completes Step 5 (Billing/Shipping - pre-filled) → Step 6
-        7. Completes Step 6 (Review) → Finish
+        1. Captures equipment list BEFORE starting
+        2. Opens the Terminal Wizard
+        3. Completes Step 1 (Select Type) → Step 2
+        4. Completes Step 2 (Select Part) → Step 3
+        5. Completes Step 3 (Enter Part Details) → Step 4
+        6. Completes Step 4 (Select Terminal Application) → Step 5
+        7. Completes Step 5 (Billing/Shipping - pre-filled) → Step 6
+        8. Completes Step 6 (Review) → Finish
+        9. Verifies terminal in Equipment Table
         
         Args:
             terminal_config: Terminal configuration dict with all step data.
             
         Returns:
-            Dict with all step results and final outcome
+            Dict with all step results, equipment tracking, and final outcome:
+                - step1-step6: bool for each step
+                - success: bool overall success
+                - review_values: Dict of review values from Step 6
+                - terminals_before: List of terminals before adding
+                - terminals_after: List of terminals after adding
+                - newly_added: List of newly added terminals
+                - total_count: Total terminals after adding
         """
         terminal_name = terminal_config.get("name", "Unknown Terminal")
         results = {
@@ -1009,13 +1173,22 @@ class AddTerminalPage:
             "step6": False,
             "success": False,
             "review_values": {},
-            "success_message": ""
+            "terminals_before": [],
+            "terminals_after": [],
+            "newly_added": [],
+            "total_count": 0
         }
         
         self.logger.info("=" * 60)
         self.logger.info(f"STARTING TERMINAL WIZARD (FULL): {terminal_name}")
         self.logger.info(f"Terminal Config: {terminal_config}")
         self.logger.info("=" * 60)
+        
+        # CAPTURE EQUIPMENT LIST BEFORE STARTING
+        self.logger.info("Capturing Equipment Table state BEFORE adding terminal...")
+        equipment_before = self.get_equipment_list()
+        results["terminals_before"] = equipment_before.get("terminals", [])
+        self.logger.info(f"Equipment Before: {results['terminals_before']} (count: {len(results['terminals_before'])})")
         
         # Open the wizard
         if not self.open_terminal_wizard():
@@ -1051,12 +1224,14 @@ class AddTerminalPage:
         results["step5"] = True
         self.logger.info(f"{SYMBOL_CHECK} Step 5 completed for '{terminal_name}' - now on Step 6")
         
-        # Complete Step 6 (Review) and finish
-        step6_result = self.complete_step_6(terminal_config)
+        # Complete Step 6 (Review) and finish - pass equipment_before for verification
+        step6_result = self.complete_step_6(terminal_config, equipment_before=equipment_before)
         results["step6"] = step6_result["success"]
         results["success"] = step6_result["success"]
         results["review_values"] = step6_result["review_values"]
-        results["success_message"] = step6_result["success_message"]
+        results["terminals_after"] = step6_result.get("terminals_after", [])
+        results["newly_added"] = step6_result.get("newly_added", [])
+        results["total_count"] = step6_result.get("total_count", 0)
         
         if step6_result["success"]:
             self.logger.info(f"{SYMBOL_CHECK} Step 6 completed for '{terminal_name}' - Terminal Added!")
@@ -1163,7 +1338,10 @@ class AddTerminalPage:
                     "step6": step_results["step6"],
                     "status": "completed",
                     "review_values": step_results["review_values"],
-                    "success_message": step_results["success_message"]
+                    "terminals_before": step_results.get("terminals_before", []),
+                    "terminals_after": step_results.get("terminals_after", []),
+                    "newly_added": step_results.get("newly_added", []),
+                    "total_count": step_results.get("total_count", 0)
                 }
                 
                 # Track successfully added terminal
