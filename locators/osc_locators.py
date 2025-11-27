@@ -8,6 +8,16 @@ LocatorStrategy = Literal["id", "name", "css", "xpath", "text", "role"]
 Locator = Tuple[LocatorStrategy, str] | str
 
 
+class CommonLocators:
+    """Common locators used across the application"""
+    
+    # Success/Error Toast Notifications
+    SUCCESS_ALERT = "//div[@id='myAlert' and contains(@class,'alert-success')]"
+    ERROR_ALERT = "//div[@id='myAlert' and contains(@class,'alert-danger')]"
+    WARNING_ALERT = "//div[@id='myAlert' and contains(@class,'alert-warning')]"
+    INFO_ALERT = "//div[@id='myAlert' and contains(@class,'alert-info')]"
+
+
 class LoginPageLocators:
     FORM = "#form1"
     USERNAME_FIELD = "#txtUsername"

@@ -8,6 +8,7 @@ Provides a comprehensive logging solution with:
 - Environment-aware log levels
 - Automatic log file rotation
 - Thread-safe operations
+- Cross-platform Unicode support (Windows cp1252 compatible)
 
 Usage:
     from core.logger import get_logger, log_success, log_step
@@ -36,6 +37,17 @@ from rich.table import Table
 from rich.theme import Theme
 
 from core.utils import ensure_dir, get_env
+
+
+def _is_windows_limited_encoding() -> bool:
+    """Check if on Windows with limited console encoding."""
+    if sys.platform != "win32":
+        return False
+    try:
+        encoding = sys.stdout.encoding or "utf-8"
+        return encoding.lower() in ("cp1252", "ascii", "cp437", "cp850")
+    except Exception:
+        return True
 
 
 # Custom theme for consistent coloring
@@ -114,6 +126,7 @@ class AutomationLogger:
             log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5,
+            encoding='utf-8',  # Ensure UTF-8 for cross-platform Unicode support
         )
         
         env = get_env("ENV", "prod").lower()
@@ -133,7 +146,11 @@ class AutomationLogger:
     def get_console(cls) -> Console:
         """Get the rich console instance for custom formatting."""
         if cls._console is None:
-            cls._console = Console(theme=AUTOMATION_THEME)
+            cls._console = Console(
+                theme=AUTOMATION_THEME,
+                force_terminal=True,
+                legacy_windows=_is_windows_limited_encoding(),
+            )
         return cls._console
 
     @classmethod
@@ -160,8 +177,14 @@ class AutomationLogger:
         log_level = logging.DEBUG if env == "dev" else logging.INFO
 
         # Rich console handler for beautiful terminal output
+        # Use force_terminal on Windows for better compatibility
+        console = Console(
+            theme=AUTOMATION_THEME,
+            force_terminal=True,
+            legacy_windows=_is_windows_limited_encoding(),  # ASCII fallback on old Windows consoles
+        )
         console_handler = RichHandler(
-            console=Console(theme=AUTOMATION_THEME),
+            console=console,
             rich_tracebacks=True,
             tracebacks_show_locals=True,
             show_time=True,
@@ -193,6 +216,7 @@ class AutomationLogger:
             cls._log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5,
+            encoding='utf-8',  # Ensure UTF-8 for cross-platform Unicode support
         )
         file_handler.setLevel(log_level)
 

@@ -29,6 +29,7 @@ sys.path.insert(0, str(project_root))
 from dotenv import load_dotenv
 
 from core import UIAutomationCore, log_step, log_success, log_section
+from core.utils import SYMBOL_CHECK, SYMBOL_CROSS
 from config.osc.config import osc_settings
 from pages.osc.login_page import LoginPage
 from locators.osc_locators import DashboardPageLocators
@@ -85,25 +86,25 @@ def verify_osc_dashboard() -> bool:
             # Check for Home heading
             try:
                 ui.wait_visible(DashboardPageLocators.HOME_HEADING, timeout_ms=5000)
-                log_success("✓ Home heading found")
+                log_success(f"{SYMBOL_CHECK} Home heading found")
             except Exception as e:
-                logger.error(f"✗ Home heading not found | error={e}")
+                logger.error(f"{SYMBOL_CROSS} Home heading not found | error={e}")
                 return False
 
             # Check for Application Summary
             try:
                 ui.wait_visible(DashboardPageLocators.APPLICATION_SUMMARY_HEADING, timeout_ms=5000)
-                log_success("✓ Application Summary heading found")
+                log_success(f"{SYMBOL_CHECK} Application Summary heading found")
             except Exception as e:
-                logger.error(f"✗ Application Summary heading not found | error={e}")
+                logger.error(f"{SYMBOL_CROSS} Application Summary heading not found | error={e}")
                 return False
 
             # Check for navigation menu (logout link)
             try:
                 ui.wait_visible(DashboardPageLocators.LOGOUT_LINK, timeout_ms=5000)
-                log_success("✓ Logout link found")
+                log_success(f"{SYMBOL_CHECK} Logout link found")
             except Exception as e:
-                logger.error(f"✗ Logout link not found | error={e}")
+                logger.error(f"{SYMBOL_CROSS} Logout link not found | error={e}")
                 return False
 
             # Take success screenshot

@@ -141,7 +141,7 @@ def create_credit_card_merchant():
             failed = [f for f, r in corp_results.items() if not r]
             logger.warning(f"Corporate Information: {corp_success}/{corp_total}. Failed: {failed}")
 
-        core.take_screenshot("corporate_info_completed")
+        # core.take_screenshot("corporate_info_completed")
 
         # ==================== Step 6: Fill Location Information ====================
         log_step("Step 6: Filling Location Information section")
@@ -160,7 +160,7 @@ def create_credit_card_merchant():
             failed = [f for f, r in loc_results.items() if not r]
             logger.warning(f"Location Information: {loc_success}/{loc_total}. Failed: {failed}")
 
-        core.take_screenshot("location_info_completed")
+        # core.take_screenshot("location_info_completed")
 
         # ==================== Step 7: Fill Tax Information ====================
         log_step("Step 7: Filling Tax Information section")

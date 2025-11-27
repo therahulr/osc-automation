@@ -51,3 +51,8 @@ test-results/
 # Git
 .git/
 screenshots/
+
+# Local pastepad artifacts
+pad_text.txt
+pastepad.py
+uploads/

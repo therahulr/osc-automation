@@ -1,8 +1,37 @@
 """Utility functions for common operations."""
 
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
+
+
+# Cross-platform Unicode symbols
+# Windows cp1252 encoding can't display certain Unicode characters
+# Use ASCII fallbacks on Windows to avoid UnicodeEncodeError
+def _is_windows_console() -> bool:
+    """Check if running on Windows with limited encoding support."""
+    if sys.platform != "win32":
+        return False
+    # Check if stdout encoding supports Unicode
+    try:
+        encoding = sys.stdout.encoding or "utf-8"
+        return encoding.lower() in ("cp1252", "ascii", "cp437", "cp850")
+    except Exception:
+        return True
+
+
+# Define symbols with ASCII fallbacks for Windows
+if _is_windows_console():
+    SYMBOL_CHECK = "[OK]"      # ✓
+    SYMBOL_CROSS = "[FAIL]"    # ✗
+    SYMBOL_ARROW = "->"        # →
+    SYMBOL_BULLET = "*"        # •
+else:
+    SYMBOL_CHECK = "✓"
+    SYMBOL_CROSS = "✗"
+    SYMBOL_ARROW = "→"
+    SYMBOL_BULLET = "•"
 
 
 def ensure_dir(path: str | Path) -> Path:

@@ -1,8 +1,10 @@
 """
-OSC Application Data Configuration
+OSC Application Data Configuration - DEV ENVIRONMENT
 
-This file contains all default data used for OSC application workflows.
-All values can be overridden at runtime using custom data files or dictionaries.
+This file contains test data for the DEV/Development environment.
+Modify values here for development and debugging needs.
+
+Set OSC_DATA_ENV=dev to use this data file.
 
 Data Categories:
 - Sales Representatives

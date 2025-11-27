@@ -22,6 +22,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from core.performance import performance_tracker
+from core.utils import SYMBOL_CHECK, SYMBOL_CROSS
 
 
 @dataclass
@@ -206,7 +207,7 @@ class PerformanceReporter:
             lines.append(f"")
 
             for step in steps:
-                status_icon = "✓" if step.status == "success" else "✗"
+                status_icon = SYMBOL_CHECK if step.status == "success" else SYMBOL_CROSS
                 lines.append(f"{status_icon} [{step.order_index + 1}] {step.name}")
                 lines.append(f"    Type: {step.type} | Duration: {step.duration:.2f}s | Status: {step.status}")
                 if step.error_message:

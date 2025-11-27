@@ -1,8 +1,10 @@
 """
-OSC Application Data Configuration
+OSC Application Data Configuration - QA ENVIRONMENT
 
-This file contains all default data used for OSC application workflows.
-All values can be overridden at runtime using custom data files or dictionaries.
+This file contains test data for the QA environment.
+Modify values here for QA-specific testing needs.
+
+Set OSC_DATA_ENV=qa to use this data file.
 
 Data Categories:
 - Sales Representatives

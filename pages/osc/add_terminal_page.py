@@ -10,11 +10,15 @@ from typing import Dict, Any, Optional, List
 import time
 
 from core.logger import get_logger
-from locators.osc_locators import TerminalWizardLocators
+from core.utils import SYMBOL_CHECK, SYMBOL_CROSS
+from locators.osc_locators import TerminalWizardLocators, CommonLocators
 from data.osc.add_terminal_data import (
     add_to_added_terminals,
     get_added_terminals,
     clear_added_terminals,
+    generate_serial_number,
+    generate_random_price,
+    generate_random_fee,
 )
 
 
@@ -464,26 +468,625 @@ class AddTerminalPage:
             return False
     
     # =========================================================================
-    # FULL WIZARD FLOW
+    # STEP 3: ENTER PART DETAILS
     # =========================================================================
     
-    def add_terminal_steps_1_2(self, terminal_config: Dict[str, Any]) -> Dict[str, bool]:
+    def _should_fill_field(self, config_value: Any) -> bool:
         """
-        Open wizard and complete Steps 1 and 2.
+        Determine if a field should be filled based on config value.
+        
+        Args:
+            config_value: The config value - "random" means decide randomly,
+                         "" or None means skip, anything else means fill
+                         
+        Returns:
+            bool: True if field should be filled
+        """
+        import random
+        
+        if config_value == "random":
+            return random.choice([True, False])
+        elif config_value in ("", None, False):
+            return False
+        else:
+            return True
+    
+    def fill_step_3(self, terminal_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Fill Step 3 of the Terminal Wizard: Enter Part Details.
+        
+        All fields are optional. For each field, randomly decide whether to fill or skip.
+        This simulates realistic user behavior where not all optional fields are filled.
+        
+        Fields:
+        - Serial Number: Optional, if filled use TEST<random_chars>
+        - Merchant Sale Price: Optional, random price if filled
+        - File Built By: Optional dropdown selection
+        - Reprogram Fee: Optional checkbox + amount
+        - Welcome Kit Fee: Optional checkbox + amount
+        
+        Args:
+            terminal_config: Dict with step 3 configuration values.
+                            Use "random" to decide at runtime.
+            
+        Returns:
+            Dict with field names and their fill status/values
+        """
+        import random
+        
+        self.logger.info("=== Step 3: Enter Part Details ===")
+        
+        # Verify we're on Step 3
+        if not self.verify_step_header(3, timeout=self.SHORT_TIMEOUT):
+            self.logger.error("Not on Step 3 - cannot proceed")
+            return {"success": False, "error": "Not on Step 3"}
+        
+        results = {"success": True, "fields_filled": {}}
+        
+        # ----- Serial Number -----
+        serial_config = terminal_config.get("serial_number", "")
+        fill_serial = self._should_fill_field(serial_config)
+        
+        if fill_serial:
+            serial_value = generate_serial_number() if serial_config == "random" else serial_config
+            try:
+                self.page.fill(TerminalWizardLocators.SERIAL_NUMBER_INPUT, serial_value)
+                self.logger.info(f"Serial Number: Filled with '{serial_value}'")
+                results["fields_filled"]["serial_number"] = serial_value
+            except Exception as e:
+                self.logger.warning(f"Serial Number: Failed to fill - {e}")
+        else:
+            self.logger.info("Serial Number: Skipped (random decision: No)")
+            results["fields_filled"]["serial_number"] = None
+        
+        time.sleep(0.3)
+        
+        # ----- Merchant Sale Price -----
+        price_config = terminal_config.get("merchant_sale_price", "")
+        fill_price = self._should_fill_field(price_config)
+        
+        if fill_price:
+            price_value = generate_random_price() if price_config == "random" else str(price_config)
+            try:
+                # Clear existing value first
+                self.page.locator(TerminalWizardLocators.MERCHANT_SALE_PRICE_INPUT).clear()
+                self.page.fill(TerminalWizardLocators.MERCHANT_SALE_PRICE_INPUT, price_value)
+                self.logger.info(f"Merchant Sale Price: Filled with '{price_value}'")
+                results["fields_filled"]["merchant_sale_price"] = price_value
+            except Exception as e:
+                self.logger.warning(f"Merchant Sale Price: Failed to fill - {e}")
+        else:
+            self.logger.info("Merchant Sale Price: Skipped (random decision: No)")
+            results["fields_filled"]["merchant_sale_price"] = None
+        
+        time.sleep(0.3)
+        
+        # ----- File Built By Dropdown -----
+        file_built_config = terminal_config.get("file_built_by", "")
+        fill_file_built = self._should_fill_field(file_built_config)
+        
+        if fill_file_built:
+            try:
+                dropdown = self.page.locator(TerminalWizardLocators.FILE_BUILT_BY_DROPDOWN)
+                
+                if file_built_config == "random":
+                    # Get available options and select random one (excluding empty/default)
+                    options = dropdown.locator("option").all_text_contents()
+                    valid_options = [opt for opt in options if opt.strip() and opt.strip() != ""]
+                    
+                    if valid_options:
+                        selected_option = random.choice(valid_options)
+                        self.page.select_option(TerminalWizardLocators.FILE_BUILT_BY_DROPDOWN, label=selected_option)
+                        self.logger.info(f"File Built By: Selected '{selected_option}'")
+                        results["fields_filled"]["file_built_by"] = selected_option
+                    else:
+                        self.logger.info("File Built By: No valid options available, skipped")
+                        results["fields_filled"]["file_built_by"] = None
+                else:
+                    # Use specific value from config
+                    self.page.select_option(TerminalWizardLocators.FILE_BUILT_BY_DROPDOWN, label=file_built_config)
+                    self.logger.info(f"File Built By: Selected '{file_built_config}'")
+                    results["fields_filled"]["file_built_by"] = file_built_config
+            except Exception as e:
+                self.logger.warning(f"File Built By: Failed to select - {e}")
+        else:
+            self.logger.info("File Built By: Skipped (random decision: No)")
+            results["fields_filled"]["file_built_by"] = None
+        
+        time.sleep(0.3)
+        
+        # ----- Reprogram Fee (Checkbox + Amount) -----
+        reprogram_config = terminal_config.get("reprogram_fee", False)
+        reprogram_amount_config = terminal_config.get("reprogram_fee_amount", "")
+        
+        # Decide if we check the reprogram checkbox
+        if reprogram_config == "random":
+            check_reprogram = random.choice([True, False])
+        else:
+            check_reprogram = bool(reprogram_config)
+        
+        if check_reprogram:
+            try:
+                checkbox = self.page.locator(TerminalWizardLocators.REPROGRAM_CHECKBOX)
+                if not checkbox.is_checked():
+                    checkbox.click()
+                    time.sleep(0.3)
+                    self.logger.info("Reprogram Fee: Checkbox checked")
+                
+                # Fill the amount
+                amount = generate_random_fee() if reprogram_amount_config == "random" else str(reprogram_amount_config)
+                self.page.locator(TerminalWizardLocators.REPROGRAM_FEE_INPUT).clear()
+                self.page.fill(TerminalWizardLocators.REPROGRAM_FEE_INPUT, amount)
+                self.logger.info(f"Reprogram Fee Amount: Filled with '{amount}'")
+                results["fields_filled"]["reprogram_fee"] = True
+                results["fields_filled"]["reprogram_fee_amount"] = amount
+            except Exception as e:
+                self.logger.warning(f"Reprogram Fee: Failed - {e}")
+        else:
+            self.logger.info("Reprogram Fee: Skipped (random decision: No)")
+            results["fields_filled"]["reprogram_fee"] = False
+            results["fields_filled"]["reprogram_fee_amount"] = None
+        
+        time.sleep(0.3)
+        
+        # ----- Welcome Kit Fee (Checkbox + Amount) -----
+        welcome_config = terminal_config.get("welcome_kit_fee", False)
+        welcome_amount_config = terminal_config.get("welcome_kit_fee_amount", "")
+        
+        # Decide if we check the welcome kit checkbox
+        if welcome_config == "random":
+            check_welcome = random.choice([True, False])
+        else:
+            check_welcome = bool(welcome_config)
+        
+        if check_welcome:
+            try:
+                checkbox = self.page.locator(TerminalWizardLocators.WELCOME_KIT_CHECKBOX)
+                if not checkbox.is_checked():
+                    checkbox.click()
+                    time.sleep(0.3)
+                    self.logger.info("Welcome Kit Fee: Checkbox checked")
+                
+                # Fill the amount
+                amount = generate_random_fee() if welcome_amount_config == "random" else str(welcome_amount_config)
+                self.page.locator(TerminalWizardLocators.WELCOME_KIT_FEE_INPUT).clear()
+                self.page.fill(TerminalWizardLocators.WELCOME_KIT_FEE_INPUT, amount)
+                self.logger.info(f"Welcome Kit Fee Amount: Filled with '{amount}'")
+                results["fields_filled"]["welcome_kit_fee"] = True
+                results["fields_filled"]["welcome_kit_fee_amount"] = amount
+            except Exception as e:
+                self.logger.warning(f"Welcome Kit Fee: Failed - {e}")
+        else:
+            self.logger.info("Welcome Kit Fee: Skipped (random decision: No)")
+            results["fields_filled"]["welcome_kit_fee"] = False
+            results["fields_filled"]["welcome_kit_fee_amount"] = None
+        
+        self.logger.info(f"Step 3 fields completed. Filled: {[k for k, v in results['fields_filled'].items() if v is not None and v is not False]}")
+        return results
+    
+    def complete_step_3(self, terminal_config: Dict[str, Any]) -> bool:
+        """
+        Complete Step 3 and navigate to Step 4.
+        
+        This includes:
+        1. Filling all Step 3 fields (with random decisions)
+        2. Clicking Next button
+        3. Waiting for processing banner
+        4. Verifying Step 4 header
+        
+        Args:
+            terminal_config: Dict with terminal configuration
+            
+        Returns:
+            bool: True if successfully moved to Step 4, False otherwise
+        """
+        # Fill Step 3 fields
+        step3_results = self.fill_step_3(terminal_config)
+        
+        if not step3_results.get("success", False):
+            return False
+        
+        # Click Next button
+        self.logger.info("Clicking Next button to proceed to Step 4...")
+        
+        try:
+            next_button = self.page.locator(TerminalWizardLocators.STEP_3_NEXT_BUTTON)
+            next_button.scroll_into_view_if_needed()
+            next_button.click()
+            
+            # Wait for processing banner to appear and disappear
+            time.sleep(0.5)
+            self.wait_for_processing_banner_hidden(timeout=self.LONG_TIMEOUT)
+            
+            # Verify Step 4 header
+            if self.verify_step_header(4, timeout=self.DEFAULT_TIMEOUT):
+                self.logger.info("Successfully moved to Step 4")
+                return True
+            else:
+                self.logger.error("Step 4 header not visible after clicking Next")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to complete Step 3: {e}")
+            return False
+    
+    # =========================================================================
+    # STEP 4: SELECT TERMINAL APPLICATION
+    # =========================================================================
+    
+    def fill_step_4(self, terminal_config: Dict[str, Any]) -> bool:
+        """
+        Fill Step 4 of the Terminal Wizard: Select Terminal Application.
+        
+        This step involves selecting a terminal program from the available list.
+        
+        Args:
+            terminal_config: Dict with step 4 configuration values.
+                            Expected key: "terminal_program" (e.g., "VAR / STAGE")
+            
+        Returns:
+            bool: True if successfully filled Step 4
+        """
+        self.logger.info("=== Step 4: Select Terminal Application ===")
+        
+        # Verify we're on Step 4
+        if not self.verify_step_header(4, timeout=self.SHORT_TIMEOUT):
+            self.logger.error("Not on Step 4 - cannot proceed")
+            return False
+        
+        # Get the terminal program to select
+        terminal_program = terminal_config.get("terminal_program", "VAR / STAGE")
+        
+        try:
+            # Get the checkbox locator for the specified program
+            checkbox_xpath = TerminalWizardLocators.STEP_4_SELECT_TERMINAL_PROGRAM_CHECKBOX(terminal_program)
+            
+            checkbox = self.page.locator(checkbox_xpath)
+            
+            # Wait for checkbox to be visible
+            checkbox.wait_for(state="visible", timeout=self.DEFAULT_TIMEOUT)
+            
+            # Check if already checked
+            if not checkbox.is_checked():
+                checkbox.click()
+                self.logger.info(f"Terminal Program: Selected '{terminal_program}'")
+            else:
+                self.logger.info(f"Terminal Program: '{terminal_program}' already selected")
+            
+            time.sleep(0.3)
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to select terminal program '{terminal_program}': {e}")
+            return False
+    
+    def complete_step_4(self, terminal_config: Dict[str, Any]) -> bool:
+        """
+        Complete Step 4 and navigate to Step 5.
+        
+        This includes:
+        1. Selecting the terminal program checkbox
+        2. Clicking Next button
+        3. Waiting for processing banner
+        4. Verifying Step 5 header
+        
+        Args:
+            terminal_config: Dict with terminal configuration
+            
+        Returns:
+            bool: True if successfully moved to Step 5, False otherwise
+        """
+        # Fill Step 4 fields
+        if not self.fill_step_4(terminal_config):
+            return False
+        
+        # Click Next button
+        self.logger.info("Clicking Next button to proceed to Step 5...")
+        
+        try:
+            next_button = self.page.locator(TerminalWizardLocators.STEP_4_NEXT_BUTTON)
+            next_button.scroll_into_view_if_needed()
+            next_button.click()
+            
+            # Wait for processing banner to appear and disappear
+            time.sleep(0.5)
+            self.wait_for_processing_banner_hidden(timeout=self.LONG_TIMEOUT)
+            
+            # Verify Step 5 header
+            if self.verify_step_header(5, timeout=self.DEFAULT_TIMEOUT):
+                self.logger.info("Successfully moved to Step 5")
+                return True
+            else:
+                self.logger.error("Step 5 header not visible after clicking Next")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to complete Step 4: {e}")
+            return False
+    
+    # =========================================================================
+    # STEP 5: ENTER BILLING / SHIPPING INFORMATION
+    # =========================================================================
+    
+    def complete_step_5(self, terminal_config: Dict[str, Any]) -> bool:
+        """
+        Complete Step 5 and navigate to Step 6.
+        
+        Step 5 contains billing/shipping information which is typically
+        pre-filled from the application. This method just verifies we're
+        on Step 5 and clicks Next to proceed.
+        
+        Args:
+            terminal_config: Dict with terminal configuration (not used for Step 5)
+            
+        Returns:
+            bool: True if successfully moved to Step 6, False otherwise
+        """
+        self.logger.info("=== Step 5: Enter Billing / Shipping Information ===")
+        
+        # Verify we're on Step 5
+        if not self.verify_step_header(5, timeout=self.SHORT_TIMEOUT):
+            self.logger.error("Not on Step 5 - cannot proceed")
+            return False
+        
+        self.logger.info("Step 5: Address details are pre-filled. Proceeding to next step...")
+        
+        # Click Next button
+        self.logger.info("Clicking Next button to proceed to Step 6...")
+        
+        try:
+            next_button = self.page.locator(f"#{TerminalWizardLocators.STEP_5_NEXT}")
+            next_button.scroll_into_view_if_needed()
+            next_button.click()
+            
+            # Wait for processing banner to appear and disappear
+            time.sleep(0.5)
+            self.wait_for_processing_banner_hidden(timeout=self.LONG_TIMEOUT)
+            
+            # Verify Step 6 header
+            if self.verify_step_header(6, timeout=self.DEFAULT_TIMEOUT):
+                self.logger.info("Successfully moved to Step 6")
+                return True
+            else:
+                self.logger.error("Step 6 header not visible after clicking Next")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to complete Step 5: {e}")
+            return False
+    
+    # =========================================================================
+    # STEP 6: REVIEW AND FINISH
+    # =========================================================================
+    
+    def log_step_6_review_values(self) -> Dict[str, str]:
+        """
+        Log all review values displayed on Step 6.
+        
+        Returns:
+            Dict with all review field values
+        """
+        self.logger.info("=== Step 6: Review - Logging all values ===")
+        
+        review_values = {}
+        
+        # Define fields to log with their locators
+        fields = {
+            "Terminal": TerminalWizardLocators.STEP_6_TERMINAL_VALUE,
+            "Serial Number (S/N)": TerminalWizardLocators.STEP_6_SERIAL_NUMBER_VALUE,
+            "Total Sales Price": TerminalWizardLocators.STEP_6_TOTAL_SALES_PRICE_VALUE,
+            "Ship Method": TerminalWizardLocators.STEP_6_SHIP_METHOD_VALUE,
+            "Bill To": TerminalWizardLocators.STEP_6_BILL_TO_VALUE,
+            "Ship To": TerminalWizardLocators.STEP_6_SHIP_TO_VALUE,
+            "Contact": TerminalWizardLocators.STEP_6_CONTACT_VALUE,
+        }
+        
+        for field_name, locator in fields.items():
+            try:
+                element = self.page.locator(locator)
+                if element.is_visible(timeout=2000):
+                    value = element.text_content() or ""
+                    value = value.strip()
+                    review_values[field_name] = value
+                    self.logger.info(f"  {field_name}: {value if value else '(empty)'}")
+                else:
+                    review_values[field_name] = "(not visible)"
+                    self.logger.info(f"  {field_name}: (not visible)")
+            except Exception as e:
+                review_values[field_name] = f"(error: {e})"
+                self.logger.warning(f"  {field_name}: Failed to read - {e}")
+        
+        return review_values
+    
+    def complete_step_6(self, terminal_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Complete Step 6 (Review) and finish the wizard.
+        
+        This is the final step that:
+        1. Logs all review values
+        2. Clicks Finish button
+        3. Waits for processing (may take several minutes)
+        4. Captures success notification
+        
+        Args:
+            terminal_config: Dict with terminal configuration
+            
+        Returns:
+            Dict with:
+                - success: bool
+                - review_values: Dict of all review values
+                - success_message: str (if successful)
+        """
+        self.logger.info("=== Step 6: Review and Finish ===")
+        
+        result = {
+            "success": False,
+            "review_values": {},
+            "success_message": ""
+        }
+        
+        # Verify we're on Step 6
+        if not self.verify_step_header(6, timeout=self.SHORT_TIMEOUT):
+            self.logger.error("Not on Step 6 - cannot proceed")
+            return result
+        
+        # Log all review values
+        result["review_values"] = self.log_step_6_review_values()
+        
+        # Click Finish button
+        self.logger.info("Clicking Finish button to complete the wizard...")
+        self.logger.info("(This may take several minutes while processing...)")
+        
+        try:
+            finish_button = self.page.locator(TerminalWizardLocators.STEP_6_FINISH_BUTTON)
+            finish_button.scroll_into_view_if_needed()
+            finish_button.click()
+            
+            # Wait for processing banner - this can take several minutes
+            time.sleep(1)
+            self.logger.info("Waiting for processing to complete...")
+            
+            # Use longer timeout for final step processing (up to 5 minutes)
+            FINISH_TIMEOUT = 300000  # 5 minutes in ms
+            self.wait_for_processing_banner_hidden(timeout=FINISH_TIMEOUT)
+            
+            # Wait for success notification
+            self.logger.info("Processing complete. Checking for success notification...")
+            time.sleep(1)
+            
+            # Look for success alert
+            success_alert = self.page.locator(CommonLocators.SUCCESS_ALERT)
+            
+            if success_alert.is_visible(timeout=self.DEFAULT_TIMEOUT):
+                success_message = success_alert.text_content() or ""
+                success_message = success_message.strip()
+                
+                result["success"] = True
+                result["success_message"] = success_message
+                
+                self.logger.info("=" * 60)
+                self.logger.info(f"{SYMBOL_CHECK} TERMINAL ADDED SUCCESSFULLY!")
+                self.logger.info(f"Success Message: {success_message}")
+                self.logger.info("=" * 60)
+            else:
+                self.logger.error("Success notification not found after processing")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to complete Step 6: {e}")
+        
+        return result
+    
+    # =========================================================================
+    # FULL WIZARD FLOW - ALL 6 STEPS
+    # =========================================================================
+    
+    def add_terminal_complete(self, terminal_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Complete the entire Terminal Wizard (all 6 steps).
         
         This method:
         1. Opens the Terminal Wizard
-        2. Completes Step 1 (Select Type) and moves to Step 2
-        3. Completes Step 2 (Select Part) and moves to Step 3
+        2. Completes Step 1 (Select Type) → Step 2
+        3. Completes Step 2 (Select Part) → Step 3
+        4. Completes Step 3 (Enter Part Details) → Step 4
+        5. Completes Step 4 (Select Terminal Application) → Step 5
+        6. Completes Step 5 (Billing/Shipping - pre-filled) → Step 6
+        7. Completes Step 6 (Review) → Finish
         
         Args:
             terminal_config: Terminal configuration dict with all step data.
             
         Returns:
-            Dict with step results: {"step1": bool, "step2": bool}
+            Dict with all step results and final outcome
         """
         terminal_name = terminal_config.get("name", "Unknown Terminal")
-        results = {"step1": False, "step2": False}
+        results = {
+            "step1": False, 
+            "step2": False, 
+            "step3": False,
+            "step4": False,
+            "step5": False,
+            "step6": False,
+            "success": False,
+            "review_values": {},
+            "success_message": ""
+        }
+        
+        self.logger.info("=" * 60)
+        self.logger.info(f"STARTING TERMINAL WIZARD (FULL): {terminal_name}")
+        self.logger.info(f"Terminal Config: {terminal_config}")
+        self.logger.info("=" * 60)
+        
+        # Open the wizard
+        if not self.open_terminal_wizard():
+            return results
+        
+        # Complete Step 1 and move to Step 2
+        if not self.complete_step_1(terminal_config):
+            return results
+        results["step1"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 1 completed for '{terminal_name}' - now on Step 2")
+        
+        # Complete Step 2 and move to Step 3
+        if not self.complete_step_2(terminal_config):
+            return results
+        results["step2"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 2 completed for '{terminal_name}' - now on Step 3")
+        
+        # Complete Step 3 and move to Step 4
+        if not self.complete_step_3(terminal_config):
+            return results
+        results["step3"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 3 completed for '{terminal_name}' - now on Step 4")
+        
+        # Complete Step 4 and move to Step 5
+        if not self.complete_step_4(terminal_config):
+            return results
+        results["step4"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 4 completed for '{terminal_name}' - now on Step 5")
+        
+        # Complete Step 5 and move to Step 6
+        if not self.complete_step_5(terminal_config):
+            return results
+        results["step5"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 5 completed for '{terminal_name}' - now on Step 6")
+        
+        # Complete Step 6 (Review) and finish
+        step6_result = self.complete_step_6(terminal_config)
+        results["step6"] = step6_result["success"]
+        results["success"] = step6_result["success"]
+        results["review_values"] = step6_result["review_values"]
+        results["success_message"] = step6_result["success_message"]
+        
+        if step6_result["success"]:
+            self.logger.info(f"{SYMBOL_CHECK} Step 6 completed for '{terminal_name}' - Terminal Added!")
+        else:
+            self.logger.error(f"{SYMBOL_CROSS} Step 6 failed for '{terminal_name}'")
+        
+        return results
+
+    # =========================================================================
+    # LEGACY METHODS (for backward compatibility)
+    # =========================================================================
+    
+    def add_terminal_steps_1_3(self, terminal_config: Dict[str, Any]) -> Dict[str, bool]:
+        """
+        Open wizard and complete Steps 1, 2, and 3.
+        
+        This method:
+        1. Opens the Terminal Wizard
+        2. Completes Step 1 (Select Type) and moves to Step 2
+        3. Completes Step 2 (Select Part) and moves to Step 3
+        4. Completes Step 3 (Enter Part Details) and moves to Step 4
+        
+        Args:
+            terminal_config: Terminal configuration dict with all step data.
+            
+        Returns:
+            Dict with step results: {"step1": bool, "step2": bool, "step3": bool}
+        """
+        terminal_name = terminal_config.get("name", "Unknown Terminal")
+        results = {"step1": False, "step2": False, "step3": False}
         
         self.logger.info("=" * 60)
         self.logger.info(f"STARTING TERMINAL WIZARD: {terminal_name}")
@@ -499,20 +1102,29 @@ class AddTerminalPage:
             return results
         
         results["step1"] = True
-        self.logger.info(f"✓ Step 1 completed for '{terminal_name}' - now on Step 2")
+        self.logger.info(f"{SYMBOL_CHECK} Step 1 completed for '{terminal_name}' - now on Step 2")
         
         # Complete Step 2 and move to Step 3
         if not self.complete_step_2(terminal_config):
             return results
         
         results["step2"] = True
-        self.logger.info(f"✓ Step 2 completed for '{terminal_name}' - now on Step 3")
+        self.logger.info(f"{SYMBOL_CHECK} Step 2 completed for '{terminal_name}' - now on Step 3")
+        
+        # Complete Step 3 and move to Step 4
+        if not self.complete_step_3(terminal_config):
+            return results
+        
+        results["step3"] = True
+        self.logger.info(f"{SYMBOL_CHECK} Step 3 completed for '{terminal_name}' - now on Step 4")
         
         return results
     
     def add_terminals(self, terminals_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Add multiple terminals from a list of configurations.
+        
+        This method runs the COMPLETE 6-step wizard for each terminal.
         
         Args:
             terminals_list: List of terminal configuration dicts
@@ -525,7 +1137,7 @@ class AddTerminalPage:
                 - added_terminals: List of successfully added terminal configs
         """
         self.logger.info("=" * 60)
-        self.logger.info(f"ADDING {len(terminals_list)} TERMINAL(S)")
+        self.logger.info(f"ADDING {len(terminals_list)} TERMINAL(S) - FULL WIZARD")
         self.logger.info("=" * 60)
         
         results = {}
@@ -537,35 +1149,55 @@ class AddTerminalPage:
             
             self.logger.info(f"\n--- Adding Terminal {idx}/{len(terminals_list)}: {terminal_name} ---")
             
-            # Run Steps 1 and 2
-            step_results = self.add_terminal_steps_1_2(terminal_config)
+            # Run complete wizard (all 6 steps)
+            step_results = self.add_terminal_complete(terminal_config)
             
-            if step_results["step1"] and step_results["step2"]:
+            if step_results["success"]:
                 success_count += 1
                 results[terminal_name] = {
-                    "step1": True, 
-                    "step2": True, 
-                    "status": "step2_complete"
+                    "step1": step_results["step1"], 
+                    "step2": step_results["step2"],
+                    "step3": step_results["step3"],
+                    "step4": step_results["step4"],
+                    "step5": step_results["step5"],
+                    "step6": step_results["step6"],
+                    "status": "completed",
+                    "review_values": step_results["review_values"],
+                    "success_message": step_results["success_message"]
                 }
                 
                 # Track successfully added terminal
                 add_to_added_terminals(terminal_config, terminal_name)
                 
-                self.logger.info(f"✓ Terminal '{terminal_name}' Steps 1-2 completed")
-                
-                # Cancel wizard for now (since only Steps 1-2 are implemented)
-                self.cancel_wizard()
+                self.logger.info(f"{SYMBOL_CHECK} Terminal '{terminal_name}' added successfully!")
             else:
                 failed_count += 1
+                # Determine which step failed
+                failed_step = "Step 1"
+                if step_results["step1"]:
+                    failed_step = "Step 2"
+                if step_results["step2"]:
+                    failed_step = "Step 3"
+                if step_results["step3"]:
+                    failed_step = "Step 4"
+                if step_results["step4"]:
+                    failed_step = "Step 5"
+                if step_results["step5"]:
+                    failed_step = "Step 6"
+                    
                 results[terminal_name] = {
                     "step1": step_results["step1"], 
                     "step2": step_results["step2"],
-                    "status": "failed"
+                    "step3": step_results["step3"],
+                    "step4": step_results["step4"],
+                    "step5": step_results["step5"],
+                    "step6": step_results["step6"],
+                    "status": "failed",
+                    "failed_at": failed_step
                 }
-                failed_step = "Step 1" if not step_results["step1"] else "Step 2"
-                self.logger.error(f"✗ Terminal '{terminal_name}' failed at {failed_step}")
+                self.logger.error(f"{SYMBOL_CROSS} Terminal '{terminal_name}' failed at {failed_step}")
                 
-                # Try to cancel wizard if it's open
+                # Try to cancel wizard if it's still open
                 self.cancel_wizard()
         
         self.logger.info("=" * 60)
@@ -593,14 +1225,15 @@ class AddTerminalPage:
             TerminalWizardLocators.STEP_2_CANCEL_BUTTON,
             TerminalWizardLocators.STEP_3_CANCEL_BUTTON,
             TerminalWizardLocators.STEP_4_CANCEL_BUTTON,
-            TerminalWizardLocators.STEP_5_CANCEL,
+            f"#{TerminalWizardLocators.STEP_5_CANCEL}",  # ID without # prefix in locator
             TerminalWizardLocators.STEP_6_CANCEL_BUTTON,
         ]
         
         for cancel_btn in cancel_buttons:
             try:
-                if self.page.locator(cancel_btn).is_visible():
-                    self.page.click(cancel_btn)
+                btn_locator = self.page.locator(cancel_btn)
+                if btn_locator.is_visible(timeout=1000):
+                    btn_locator.click()
                     time.sleep(0.5)
                     self.logger.info("Wizard cancelled successfully")
                     return True

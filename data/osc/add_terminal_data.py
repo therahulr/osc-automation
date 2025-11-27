@@ -14,7 +14,56 @@ Usage:
     added_terminals = get_added_terminals()
 """
 
+import random
+import string
 from typing import Dict, List, Any, Optional
+
+
+# =====================================================
+# DATA GENERATION HELPERS
+# =====================================================
+
+def generate_serial_number() -> str:
+    """
+    Generate a random serial number in format TEST followed by random chars/digits.
+    Example: TEST0B12XYGMK
+    
+    Returns:
+        str: Random serial number like 'TEST0B12XYGMK'
+    """
+    # Generate 8-10 random uppercase letters and digits
+    random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(8, 10)))
+    return f"TEST{random_part}"
+
+
+def generate_random_price(min_price: float = 50.0, max_price: float = 500.0) -> str:
+    """
+    Generate a random price within the given range.
+    
+    Args:
+        min_price: Minimum price value
+        max_price: Maximum price value
+        
+    Returns:
+        str: Price formatted as string with 2 decimal places (e.g., '123.45')
+    """
+    price = random.uniform(min_price, max_price)
+    return f"{price:.2f}"
+
+
+def generate_random_fee(min_fee: float = 10.0, max_fee: float = 100.0) -> str:
+    """
+    Generate a random fee amount.
+    
+    Args:
+        min_fee: Minimum fee value
+        max_fee: Maximum fee value
+        
+    Returns:
+        str: Fee formatted as string with 2 decimal places
+    """
+    fee = random.uniform(min_fee, max_fee)
+    return f"{fee:.2f}"
 
 
 # =====================================================
@@ -77,18 +126,20 @@ SAGE_50_TERMINAL: Dict[str, Any] = {
     # Part ID to select from the terminal grid (exact text from PartID column)
     "part_id": "Sage 50",
     
-    # ===== Step 3: Terminal Details =====
-    "serial_number": "",  # Optional - leave empty for auto-generation
-    "merchant_sale_price": "0.00",
-    "file_built_by": "",  # Dropdown selection
-    "reprogram_fee": False,  # Checkbox + fee
-    "reprogram_fee_amount": "0.00",
-    "welcome_kit_fee": False,  # Checkbox + fee
-    "welcome_kit_fee_amount": "0.00",
+    # ===== Step 3: Terminal Details (ALL OPTIONAL - decided randomly at runtime) =====
+    # Values here are used IF the random decision is to fill the field
+    # Use "random" to generate at runtime, or specific value to use that value
+    "serial_number": "random",  # "random" = generate TEST<random>, "" = skip, "specific" = use that value
+    "merchant_sale_price": "random",  # "random" = generate random price, "" = skip
+    "file_built_by": "random",  # "random" = select random option, "" = skip, "SPS" = select SPS
+    "reprogram_fee": "random",  # "random" = decide at runtime, True/False = use that
+    "reprogram_fee_amount": "random",  # "random" = generate if checkbox checked
+    "welcome_kit_fee": "random",  # "random" = decide at runtime, True/False = use that
+    "welcome_kit_fee_amount": "random",  # "random" = generate if checkbox checked
     
-    # ===== Step 4: Terminal Program =====
-    "terminal_program": "",  # Program name to select
-    "front_end_processor": "",  # Dropdown selection
+    # ===== Step 4: Terminal Application =====
+    "terminal_program": "VAR / STAGE",  # Program name to select from table
+    "front_end_processor": "",  # Dropdown selection (usually pre-selected)
     
     # ===== Step 5: Billing & Shipping =====
     "bill_to": "Location",  # Dropdown: "Location", "Corporate", etc.

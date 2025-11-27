@@ -35,15 +35,27 @@ from locators.osc_locators import (
     CreditCardInformationLocators,
     CreditCardUnderwritingLocators,
 )
-from data.osc.osc_data import (
-    APPLICATION_INFO, CORPORATE_INFO, LOCATION_INFO,
-    TAX_INFO, OWNER1_INFO, OWNER2_INFO,
-    TRADE_REFERENCE_INFO, GENERAL_UNDERWRITING_INFO,
-    BILLING_QUESTIONNAIRE_INFO, BANK_INFORMATION,
-    CREDIT_CARD_INFORMATION, CREDIT_CARD_SERVICES,
-    CREDIT_CARD_UNDERWRITING, generate_credit_card_underwriting_data,
-    CREDIT_CARD_INTERCHANGE
-)
+# Dynamic data loading based on OSC_DATA_ENV environment variable
+from config.osc.config import get_osc_data
+_data = get_osc_data()
+
+# Import all data from the dynamically loaded module
+APPLICATION_INFO = _data.APPLICATION_INFO
+CORPORATE_INFO = _data.CORPORATE_INFO
+LOCATION_INFO = _data.LOCATION_INFO
+TAX_INFO = _data.TAX_INFO
+OWNER1_INFO = _data.OWNER1_INFO
+OWNER2_INFO = _data.OWNER2_INFO
+TRADE_REFERENCE_INFO = _data.TRADE_REFERENCE_INFO
+GENERAL_UNDERWRITING_INFO = _data.GENERAL_UNDERWRITING_INFO
+BILLING_QUESTIONNAIRE_INFO = _data.BILLING_QUESTIONNAIRE_INFO
+BANK_INFORMATION = _data.BANK_INFORMATION
+CREDIT_CARD_INFORMATION = _data.CREDIT_CARD_INFORMATION
+CREDIT_CARD_SERVICES = _data.CREDIT_CARD_SERVICES
+CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
+generate_credit_card_underwriting_data = _data.generate_credit_card_underwriting_data
+CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
+
 from data.osc.add_terminal_data import TERMINALS_TO_ADD
 from pages.osc.add_terminal_page import AddTerminalPage
 from utils.decorators import log_step, timeit
