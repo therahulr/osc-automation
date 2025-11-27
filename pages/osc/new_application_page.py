@@ -2165,6 +2165,177 @@ class NewApplicationPage(BasePage):
             self.logger.error(f"Failed to select {card_type} BET {bet_number}: {e}")
             return False
 
+    def _fill_input_fast(self, locator: str, value: str, field_name: str) -> bool:
+        """
+        Fast input fill without alert handling. Used for discount fields
+        and when manually filling after alert cancel.
+        
+        Args:
+            locator: The CSS/XPath locator for the input field
+            value: The value to fill
+            field_name: Name of the field for logging
+        
+        Returns:
+            True if field was filled successfully, False otherwise
+        """
+        try:
+            input_field = self.page.locator(locator)
+            input_field.scroll_into_view_if_needed()
+            input_field.clear()
+            input_field.fill(str(value))
+            self.logger.info(f"{field_name}: {value}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to fill {field_name}: {e}")
+            return False
+
+    def _fill_rates_with_copy_alert(self, data: Dict[str, Any], does_not_accept_amex: bool) -> Dict[str, bool]:
+        """
+        Fill rate fields with smart alert handling.
+        
+        Logic:
+        1. Fill VISA_QUALIFIED_RATE_INPUT
+        2. Click VISA_SIGNATURE_RATE_INPUT to trigger the "copy to all" alert
+        3. 90% of time: Accept (OK) → auto-copies to all rate/signature fields
+        4. 10% of time: Cancel → manually fill all remaining fields
+        
+        Args:
+            data: Credit card interchange data
+            does_not_accept_amex: Whether merchant does not accept AMEX
+        
+        Returns:
+            Dict with field names as keys and success status as values
+        """
+        import random
+        
+        results = {}
+        loc = CreditCardUnderwritingLocators
+        
+        # Track whether alert was accepted (rates auto-copied)
+        rates_copied = False
+        
+        # Randomly decide: 90% accept, 10% cancel
+        accept_copy = random.random() < 0.90
+        
+        # Set up dialog handler
+        def handle_dialog(dialog):
+            nonlocal rates_copied
+            if accept_copy:
+                self.logger.info(f"Alert: '{dialog.message}' - Clicking OK (copying rates)")
+                dialog.accept()
+                rates_copied = True
+            else:
+                self.logger.info(f"Alert: '{dialog.message}' - Clicking Cancel")
+                dialog.dismiss()
+        
+        # Step 1: Fill Visa Qualified Rate
+        visa_qualified_rate = data.get("visa_qualified_rate", "")
+        if visa_qualified_rate:
+            results["visa_qualified_rate"] = self._fill_input_fast(
+                loc.VISA_QUALIFIED_RATE_INPUT,
+                visa_qualified_rate,
+                "Visa Qualified Rate"
+            )
+        
+        # Step 2: Add dialog handler and click on Signature field to trigger alert
+        self.page.on("dialog", handle_dialog)
+        
+        try:
+            # Click on Visa Signature Rate field - this triggers the alert
+            signature_field = self.page.locator(loc.VISA_SIGNATURE_RATE_INPUT)
+            signature_field.scroll_into_view_if_needed()
+            signature_field.click()
+            
+            # Small wait to ensure alert is handled
+            time.sleep(0.3)
+            
+        except Exception as e:
+            self.logger.error(f"Error clicking signature field: {e}")
+        
+        # Remove dialog handler
+        try:
+            self.page.remove_listener("dialog", handle_dialog)
+        except:
+            pass
+        
+        if rates_copied:
+            # Rates were auto-copied by accepting the alert
+            self.logger.info("Rates auto-copied to all fields via OK selection")
+            
+            # Mark all rate fields as successful (they were copied)
+            results["visa_signature_rate"] = True
+            results["mc_qualified_rate"] = True
+            results["mc_signature_rate"] = True
+            results["discover_qualified_rate"] = True
+            results["discover_signature_rate"] = True
+            if not does_not_accept_amex:
+                results["amex_qualified_rate"] = True
+        else:
+            # Alert was cancelled - manually fill all remaining rate fields
+            self.logger.info("Alert cancelled - manually filling all rate fields")
+            
+            # Clear and fill Visa Signature Rate (cursor is already there)
+            visa_signature_rate = data.get("visa_signature_rate", "")
+            if visa_signature_rate:
+                # Field is already focused, just clear and type
+                try:
+                    sig_field = self.page.locator(loc.VISA_SIGNATURE_RATE_INPUT)
+                    sig_field.clear()
+                    sig_field.fill(str(visa_signature_rate))
+                    self.logger.info(f"Visa Signature Plan: {visa_signature_rate}")
+                    results["visa_signature_rate"] = True
+                except Exception as e:
+                    self.logger.error(f"Failed to fill Visa Signature Plan: {e}")
+                    results["visa_signature_rate"] = False
+            
+            # MasterCard Qualified Rate
+            mc_qualified_rate = data.get("mc_qualified_rate", "")
+            if mc_qualified_rate:
+                results["mc_qualified_rate"] = self._fill_input_fast(
+                    loc.MC_QUALIFIED_RATE_INPUT,
+                    mc_qualified_rate,
+                    "MasterCard Qualified Rate"
+                )
+            
+            # MasterCard Signature Plan
+            mc_signature_rate = data.get("mc_signature_rate", "")
+            if mc_signature_rate:
+                results["mc_signature_rate"] = self._fill_input_fast(
+                    loc.MC_SIGNATURE_RATE_INPUT,
+                    mc_signature_rate,
+                    "MasterCard Signature Plan"
+                )
+            
+            # Discover Qualified Rate
+            discover_qualified_rate = data.get("discover_qualified_rate", "")
+            if discover_qualified_rate:
+                results["discover_qualified_rate"] = self._fill_input_fast(
+                    loc.DISCOVER_QUALIFIED_RATE_INPUT,
+                    discover_qualified_rate,
+                    "Discover Qualified Rate"
+                )
+            
+            # Discover Signature Plan
+            discover_signature_rate = data.get("discover_signature_rate", "")
+            if discover_signature_rate:
+                results["discover_signature_rate"] = self._fill_input_fast(
+                    loc.DISCOVER_SIGNATURE_RATE_INPUT,
+                    discover_signature_rate,
+                    "Discover Signature Plan"
+                )
+            
+            # AMEX Qualified Rate (only if accepting AMEX)
+            if not does_not_accept_amex:
+                amex_qualified_rate = data.get("amex_qualified_rate", "")
+                if amex_qualified_rate:
+                    results["amex_qualified_rate"] = self._fill_input_fast(
+                        loc.AMEX_QUALIFIED_RATE_INPUT,
+                        amex_qualified_rate,
+                        "AMEX Qualified Rate"
+                    )
+        
+        return results
+
     def fill_credit_card_interchange_section(self, data: Dict[str, Any] = None) -> Dict[str, bool]:
         """
         Fill the Credit Card Interchange section of the application.
@@ -2290,17 +2461,92 @@ class NewApplicationPage(BasePage):
                     amex_bet,
                     "AMEX"
                 )
+        
+        # =====================================================================
+        # FILL RATES WITH SMART ALERT HANDLING
+        # Logic: Fill Visa Qualified Rate, click Signature to trigger alert
+        # 90% time: OK copies rates to all fields; 10% time: Cancel, fill manually
+        # =====================================================================
+        rate_results = self._fill_rates_with_copy_alert(data, does_not_accept_amex)
+        results.update(rate_results)
+        
+        # =====================================================================
+        # FILL ALL DISCOUNT PER ITEM FIELDS (no alert handling needed)
+        # =====================================================================
+        self.logger.info("Filling Discount Per Item for all card brands...")
+        
+        # Visa Discount Per Item
+        visa_discount_per_item = data.get("visa_discount_per_item", "")
+        if visa_discount_per_item:
+            results["visa_discount_per_item"] = self._fill_input_fast(
+                loc.VISA_DISCOUNT_PER_ITEM_INPUT,
+                visa_discount_per_item,
+                "Visa Discount Per Item"
+            )
+        
+        # Visa Signature Discount Per Item
+        visa_signature_discount = data.get("visa_signature_discount", "")
+        if visa_signature_discount:
+            results["visa_signature_discount"] = self._fill_input_fast(
+                loc.VISA_SIGNATURE_DISCOUNT_INPUT,
+                visa_signature_discount,
+                "Visa Signature Discount"
+            )
+        
+        # MasterCard Discount Per Item
+        mc_discount_per_item = data.get("mc_discount_per_item", "")
+        if mc_discount_per_item:
+            results["mc_discount_per_item"] = self._fill_input_fast(
+                loc.MC_DISCOUNT_PER_ITEM_INPUT,
+                mc_discount_per_item,
+                "MasterCard Discount Per Item"
+            )
+        
+        # MasterCard Signature Discount Per Item
+        mc_signature_discount = data.get("mc_signature_discount", "")
+        if mc_signature_discount:
+            results["mc_signature_discount"] = self._fill_input_fast(
+                loc.MC_SIGNATURE_DISCOUNT_INPUT,
+                mc_signature_discount,
+                "MasterCard Signature Discount"
+            )
+        
+        # Discover Discount Per Item
+        discover_discount_per_item = data.get("discover_discount_per_item", "")
+        if discover_discount_per_item:
+            results["discover_discount_per_item"] = self._fill_input_fast(
+                loc.DISCOVER_DISCOUNT_PER_ITEM_INPUT,
+                discover_discount_per_item,
+                "Discover Discount Per Item"
+            )
+        
+        # Discover Signature Discount Per Item
+        discover_signature_discount = data.get("discover_signature_discount", "")
+        if discover_signature_discount:
+            results["discover_signature_discount"] = self._fill_input_fast(
+                loc.DISCOVER_SIGNATURE_DISCOUNT_INPUT,
+                discover_signature_discount,
+                "Discover Signature Discount"
+            )
+        
+        # AMEX Discount Per Item (only if accepting AMEX)
+        if not does_not_accept_amex:
+            amex_discount_per_item = data.get("amex_discount_per_item", "")
+            if amex_discount_per_item:
+                results["amex_discount_per_item"] = self._fill_input_fast(
+                    loc.AMEX_DISCOUNT_PER_ITEM_INPUT,
+                    amex_discount_per_item,
+                    "AMEX Discount Per Item"
+                )
             
-            # AMEX Annual Volume (if accepting AMEX)
+            # AMEX Annual Volume
             amex_annual_volume = data.get("amex_annual_volume", "")
             if amex_annual_volume:
-                try:
-                    self.page.fill(loc.AMEX_ANNUAL_VOLUME_INPUT, str(amex_annual_volume))
-                    self.logger.info(f"AMEX Annual Volume: {amex_annual_volume}")
-                    results["amex_annual_volume"] = True
-                except Exception as e:
-                    self.logger.error(f"Failed to fill AMEX Annual Volume: {e}")
-                    results["amex_annual_volume"] = False
+                results["amex_annual_volume"] = self._fill_input_fast(
+                    loc.AMEX_ANNUAL_VOLUME_INPUT,
+                    amex_annual_volume,
+                    "AMEX Annual Volume"
+                )
         
         # ===== AMEX Opt-out Marketing (applies regardless of acceptance) =====
         amex_optout = data.get("amex_optout_marketing", False)
@@ -2314,7 +2560,7 @@ class NewApplicationPage(BasePage):
                     optout_checkbox.click()
                     self.logger.info("Selected AMEX opt-out marketing checkbox")
                 else:
-                    self.logger.info("AMEX opt-out marketing already selected")
+                    self.logger.info("AMEX opt-out marketing already selected") 
                 
                 results["amex_optout_marketing"] = True
             except Exception as e:

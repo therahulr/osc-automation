@@ -365,7 +365,14 @@ def create_credit_card_merchant():
                    f"MC={CREDIT_CARD_INTERCHANGE['mastercard_bet_number']}, "
                    f"Discover={CREDIT_CARD_INTERCHANGE['discover_bet_number']}, "
                    f"AMEX={CREDIT_CARD_INTERCHANGE['amex_bet_number']}")
-        logger.info(f"Does not accept AMEX: {CREDIT_CARD_INTERCHANGE['does_not_accept_amex']}")
+        logger.info(f"Visa Rates: Qualified={CREDIT_CARD_INTERCHANGE['visa_qualified_rate']}, "
+                   f"Signature={CREDIT_CARD_INTERCHANGE['visa_signature_rate']}")
+        logger.info(f"MC Rates: Qualified={CREDIT_CARD_INTERCHANGE['mc_qualified_rate']}, "
+                   f"Signature={CREDIT_CARD_INTERCHANGE['mc_signature_rate']}")
+        logger.info(f"Discover Rates: Qualified={CREDIT_CARD_INTERCHANGE['discover_qualified_rate']}, "
+                   f"Signature={CREDIT_CARD_INTERCHANGE['discover_signature_rate']}")
+        logger.info(f"AMEX: Accept={not CREDIT_CARD_INTERCHANGE['does_not_accept_amex']}, "
+                   f"Annual Volume={CREDIT_CARD_INTERCHANGE['amex_annual_volume']}")
 
         cc_interchange_results = new_app_page.fill_credit_card_interchange_section()
         all_results["credit_card_interchange"] = cc_interchange_results

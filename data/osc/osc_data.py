@@ -399,7 +399,8 @@ TRADE_REFERENCE_INFO = {
 # GENERAL UNDERWRITING INFORMATION DATA
 # =====================================================
 GENERAL_UNDERWRITING_INFO = {
-    "business_type": random.choice(DropdownOptions.BUSINESS_TYPE_OPTIONS[1:]),  # Skip "Select business type"
+    # "business_type": random.choice(DropdownOptions.BUSINESS_TYPE_OPTIONS[1:]),  # Skip "Select business type"
+    "business_type": "Retail",  # Hardcoded for BET mapping implementation
     "sic_code": random.choice(DropdownOptions.SIC_CODE_LIST),
     "products_sold": faker.sentence(nb_words=20),
     "return_policy": random.choice(DropdownOptions.RETURN_POLICY_OPTIONS),
@@ -590,35 +591,126 @@ def generate_credit_card_underwriting_data(business_type: str = "Retail") -> Dic
 CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data("Retail")
 
 
-# Credit Card Interchange Configuration
-# BET Numbers for each card network
-CREDIT_CARD_INTERCHANGE = {
-    # Interchange Type dropdown options: "Tiered", "Interchange Plus", etc.
-    "interchange_type": "Tiered",
+def generate_rate_value() -> str:
+    """
+    Generate a random rate value with format X.XXX (1 digit before decimal, 3 after).
+    Example: 8.479, 2.156, 0.342
     
-    # Chargeback dropdown options: "0.00", "0.01", etc.
-    "chargeback": "0.00",
+    Returns:
+        String formatted rate value
+    """
+    whole = random.randint(0, 9)
+    decimal = random.randint(0, 999)
+    return f"{whole}.{decimal:03d}"
+
+
+def generate_annual_volume() -> str:
+    """
+    Generate a random annual volume with 2 decimal places.
+    Example: 12500.45, 8750.00
     
-    # FANF dropdown options: "FANF CP/CNP (Varies*)", etc.
-    "fanf_type": "FANF CP/CNP (Varies*)",
-    
-    # BET Numbers for each card network
-    "visa_bet_number": "7291",
-    "mastercard_bet_number": "5291",
-    "discover_bet_number": "3191",
-    "amex_bet_number": "4128",
-    
-    # AMEX Options
-    # If True, merchant does not accept AMEX cards (checkbox will be selected)
-    # If False, merchant accepts AMEX cards (checkbox will not be selected)
-    "does_not_accept_amex": False,
-    
-    # If True, merchant opts out of AMEX marketing materials
-    "amex_optout_marketing": False,
-    
-    # Annual AMEX Volume (optional, only if accepting AMEX)
-    "amex_annual_volume": "0.00",
+    Returns:
+        String formatted annual volume
+    """
+    volume = round(random.uniform(1000.00, 99999.99), 2)
+    return f"{volume:.2f}"
+
+
+# =====================================================
+# BET NUMBER MAPPING BY BUSINESS TYPE
+# =====================================================
+BET_NUMBERS_BY_BUSINESS_TYPE = {
+    "Retail": {
+        "visa": "7291",
+        "mastercard": "5291",
+        "discover": "3191",
+        "amex": "4128",
+    },
+    # Add other business types as needed
+    # "Restaurant": {
+    #     "visa": "XXXX",
+    #     "mastercard": "XXXX",
+    #     "discover": "XXXX",
+    #     "amex": "XXXX",
+    # },
 }
+
+# Default BET numbers (fallback if business type not mapped)
+DEFAULT_BET_NUMBERS = {
+    "visa": "8693",
+    "mastercard": "6693",
+    "discover": "3192",
+    "amex": "4884",
+}
+
+
+def generate_credit_card_interchange_data(business_type: str = "Retail") -> Dict[str, Any]:
+    """
+    Generate Credit Card Interchange data with random rates and discounts.
+    BET numbers are mapped based on the business type.
+    
+    Args:
+        business_type: The business type from General Underwriting (e.g., "Retail", "Restaurant")
+    
+    Returns:
+        Dict with all Credit Card Interchange configuration
+    """
+    # Get BET numbers based on business type, fallback to defaults if not mapped
+    bet_numbers = BET_NUMBERS_BY_BUSINESS_TYPE.get(business_type, DEFAULT_BET_NUMBERS)
+    
+    return {
+        # Interchange Type dropdown options: "Tiered", "Interchange Plus", etc.
+        "interchange_type": "Tiered",
+        
+        # Chargeback dropdown options: "0.00", "0.01", etc.
+        "chargeback": "0.00",
+        
+        # FANF dropdown options: "FANF CP/CNP (Varies*)", etc.
+        "fanf_type": "FANF CP/CNP (Varies*)",
+        
+        # BET Numbers for each card network (mapped by business type)
+        "visa_bet_number": bet_numbers["visa"],
+        "mastercard_bet_number": bet_numbers["mastercard"],
+        "discover_bet_number": bet_numbers["discover"],
+        "amex_bet_number": bet_numbers["amex"],
+        
+        # ===== Visa Rates and Discounts =====
+        "visa_qualified_rate": generate_rate_value(),
+        "visa_discount_per_item": generate_rate_value(),
+        "visa_signature_rate": generate_rate_value(),
+        "visa_signature_discount": generate_rate_value(),
+        
+        # ===== MasterCard Rates and Discounts =====
+        "mc_qualified_rate": generate_rate_value(),
+        "mc_discount_per_item": generate_rate_value(),
+        "mc_signature_rate": generate_rate_value(),
+        "mc_signature_discount": generate_rate_value(),
+        
+        # ===== Discover Rates and Discounts =====
+        "discover_qualified_rate": generate_rate_value(),
+        "discover_discount_per_item": generate_rate_value(),
+        "discover_signature_rate": generate_rate_value(),
+        "discover_signature_discount": generate_rate_value(),
+        
+        # ===== AMEX Rates and Discounts =====
+        "amex_qualified_rate": generate_rate_value(),
+        "amex_discount_per_item": generate_rate_value(),
+        
+        # AMEX Options
+        # If True, merchant does not accept AMEX cards (checkbox will be selected)
+        # If False, merchant accepts AMEX cards (checkbox will not be selected)
+        "does_not_accept_amex": False,
+        
+        # If True, merchant opts out of AMEX marketing materials
+        "amex_optout_marketing": False,
+        
+        # Annual AMEX Volume (random 2 decimal value)
+        "amex_annual_volume": generate_annual_volume(),
+    }
+
+
+# Credit Card Interchange Configuration - Generated with random rates and BET mapping
+CREDIT_CARD_INTERCHANGE = generate_credit_card_interchange_data(GENERAL_UNDERWRITING_INFO["business_type"])
 
 
 # Credit Card Services - List of services to enable
