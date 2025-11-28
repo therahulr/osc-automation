@@ -85,6 +85,22 @@ BET_NUMBERS = {
 # Generate Credit Card Interchange with PROD-specific BET numbers
 CREDIT_CARD_INTERCHANGE = generate_credit_card_interchange_data(BET_NUMBERS)
 
+# =============================================================================
+# PROD SERVICES - CREDIT CARD
+# =============================================================================
+CREDIT_CARD_SERVICES = [
+    "Mobile Merchant",
+    "Interchange Advantage Program",
+    "Commerce Suite Bundle",
+]
+
+# =============================================================================
+# PROD SERVICES - ACH
+# =============================================================================
+ACH_SERVICES = [
+    "EFT Virtual Check Consumer Initiated (EFTVCCI)",
+    "EFT Virtual Check Merchant Initiated (EFTVCMI)"
+]
 
 # =============================================================================
 # PROD FEE LISTS

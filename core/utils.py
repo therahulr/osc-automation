@@ -5,6 +5,17 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Load environment variables from .env file (no export needed)
+from dotenv import load_dotenv
+
+# Find .env file in project root (parent of core/)
+_project_root = Path(__file__).parent.parent
+_env_file = _project_root / ".env"
+
+# Load .env file if it exists
+if _env_file.exists():
+    load_dotenv(_env_file)
+
 
 # Cross-platform Unicode symbols
 # Windows cp1252 encoding can't display certain Unicode characters

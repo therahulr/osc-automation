@@ -85,7 +85,10 @@ BET_NUMBERS = {
 # Generate Credit Card Interchange with QA-specific BET numbers
 CREDIT_CARD_INTERCHANGE = generate_credit_card_interchange_data(BET_NUMBERS)
 
-QA_SERVICES_CREDIT_CARD = [
+# =============================================================================
+# QA SERVICES - CREDIT CARD
+# =============================================================================
+CREDIT_CARD_SERVICES = [
     "Mobile Merchant",
     # "Account Updater V2",
     "Interchange Advantage Program",
@@ -125,6 +128,14 @@ QA_SERVICES_CREDIT_CARD = [
     # "AP Automation Fee",
     "Commerce Suite Bundle",
     # "Business Coach Trial"
+]
+
+# =============================================================================
+# QA SERVICES - ACH
+# =============================================================================
+ACH_SERVICES = [
+    "EFT Virtual Check Consumer Initiated (EFTVCCI)",
+    "EFT Virtual Check Merchant Initiated (EFTVCMI)"
 ]
 
 # =============================================================================
