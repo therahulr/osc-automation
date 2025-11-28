@@ -113,7 +113,7 @@ def get_added_terminal_count() -> int:
 # Each terminal contains ALL data for wizard steps 1-6
 # =====================================================
 
-SAGE_50_TERMINAL: Dict[str, Any] = {
+SAGE_50: Dict[str, Any] = {
     # Terminal identifier
     "name": "Sage 50",
     
@@ -219,8 +219,10 @@ PAYA_GATEWAY_LEVEL_3_VT3: Dict[str, Any] = {
 # Maps directly to terminal configuration variables
 # =====================================================
 TERMINAL_QUANTITIES: List[tuple] = [
-    (SAGE_50_TERMINAL, 1),
-    # (SAGE_VIRTUAL_TERMINAL, 2),
+    (SAGE_50, 5),
+    (SAGE_VIRTUAL_TERMINAL, 3),
+    (PAYA_CONNECT_INTEGRATED, 4),
+    (PAYA_GATEWAY_LEVEL_3_VT3, 5),
 ]
 
 
