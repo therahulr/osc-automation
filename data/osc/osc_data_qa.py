@@ -24,6 +24,9 @@ from data.osc.common_test_data import (
     # Data generators
     generate_credit_card_underwriting_data,
     generate_credit_card_interchange_data,
+    generate_ach_underwriting_data,
+    generate_ach_fees_data,
+    generate_ach_originator_data,
     
     # Common data exports
     APPLICATION_INFO,
@@ -37,6 +40,11 @@ from data.osc.common_test_data import (
     BANK_INFORMATION,
     CREDIT_CARD_INFORMATION,
     CREDIT_CARD_SERVICES,
+    ACH_SERVICES,
+    ACH_UNDERWRITING,
+    ACH_FEES,
+    ACH_TRANSACTION_TYPES,
+    ACH_ORIGINATOR,
     SALES_REPRESENTATIVE,
     MERCHANT_PRODUCTS,
     BUSINESS_TYPE,

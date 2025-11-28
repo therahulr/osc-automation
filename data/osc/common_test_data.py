@@ -477,6 +477,143 @@ CREDIT_CARD_SERVICES = ["Mobile Merchant", "Interchange Advantage Program"]
 
 
 # =============================================================================
+# ACH SERVICES
+# =============================================================================
+ACH_SERVICES = [
+    "EFT Virtual Check Consumer Initiated (EFTVCCI)",
+    "EFT Virtual Check Merchant Initiated (EFTVCMI)"
+]
+
+
+# =============================================================================
+# ACH UNDERWRITING DATA GENERATOR
+# =============================================================================
+def generate_ach_underwriting_data() -> Dict[str, Any]:
+    """
+    Generate ACH Underwriting Profile data.
+    
+    Rules:
+    - Written + Non-Written = 100% (interval of 1, not 5)
+    - Merchant + Consumer = 100% (same logic)
+    - Only Written and Merchant need to be selected, others auto-fill with remainder
+    """
+    # Generate Written percentage (0-100, interval of 1)
+    written_pct = random.randint(0, 100)
+    
+    # Generate Merchant percentage (0-100, interval of 1)
+    merchant_pct = random.randint(0, 100)
+    
+    # Generate volumes and tickets
+    annual_volume = round(random.uniform(10000.00, 500000.00), 2)
+    avg_ticket = round(random.uniform(50.00, 500.00), 2)
+    highest_ticket = round(avg_ticket * random.uniform(2.0, 5.0), 2)
+    
+    return {
+        "annual_volume": f"{annual_volume:.2f}",
+        "avg_ticket": f"{avg_ticket:.2f}",
+        "highest_ticket": f"{highest_ticket:.2f}",
+        "written_pct": str(written_pct),  # Non-written will auto-fill with 100 - written
+        "merchant_pct": str(merchant_pct),  # Consumer will auto-fill with 100 - merchant
+        "send_email": True,
+        "send_fax": True,
+    }
+
+
+# Generate ACH Underwriting data at module load
+ACH_UNDERWRITING = generate_ach_underwriting_data()
+
+
+# =============================================================================
+# ACH FEES DATA GENERATOR
+# =============================================================================
+def generate_ach_fee_value() -> str:
+    """Generate a random fee value between 10.00 and 1000.00 with 2 decimal places."""
+    value = round(random.uniform(10.00, 1000.00), 2)
+    return f"{value:.2f}"
+
+
+def generate_ach_fees_data() -> Dict[str, Any]:
+    """
+    Generate ACH Fees data for both Rate and Fee columns.
+    
+    ACH Fees section has:
+    - CCD Written (Rate, Fee)
+    - CCD Non-Written (Rate, Fee)
+    - PPD Written (Rate, Fee)
+    - PPD Non-Written (Rate, Fee)
+    - WEB (Rate, Fee)
+    - ARC (Rate, Fee)
+    
+    Miscellaneous Fees:
+    - Statement Fee
+    - Minimum Fee
+    - File Fee
+    - Reject Fee
+    - Gateway Fee
+    - Maintenance Fee
+    - Billing Cycle (dropdown - do not change)
+    """
+    return {
+        # ACH Fees - Rate and Fee for each type
+        "ccd_written_rate": generate_ach_fee_value(),
+        "ccd_written_fee": generate_ach_fee_value(),
+        "ccd_non_written_rate": generate_ach_fee_value(),
+        "ccd_non_written_fee": generate_ach_fee_value(),
+        "ppd_written_rate": generate_ach_fee_value(),
+        "ppd_written_fee": generate_ach_fee_value(),
+        "ppd_non_written_rate": generate_ach_fee_value(),
+        "ppd_non_written_fee": generate_ach_fee_value(),
+        "web_rate": generate_ach_fee_value(),
+        "web_fee": generate_ach_fee_value(),
+        "arc_rate": generate_ach_fee_value(),
+        "arc_fee": generate_ach_fee_value(),
+        
+        # Miscellaneous Fees
+        "statement_fee": generate_ach_fee_value(),
+        "minimum_fee": generate_ach_fee_value(),
+        "file_fee": generate_ach_fee_value(),
+        "reject_fee": generate_ach_fee_value(),
+        "gateway_fee": generate_ach_fee_value(),
+        "maintenance_fee": generate_ach_fee_value(),
+        # billing_cycle is NOT included - leave as default "Monthly"
+    }
+
+
+# Generate ACH Fees data at module load
+ACH_FEES = generate_ach_fees_data()
+
+
+# =============================================================================
+# ACH ORIGINATOR DATA
+# =============================================================================
+# Transaction types available for ACH Originator
+ACH_TRANSACTION_TYPES = ["ARC", "CCD", "PPD", "RCK", "TEL", "WEB"]
+
+
+def generate_ach_originator_data() -> Dict[str, Any]:
+    """
+    Generate ACH Originator data.
+    
+    Uses same bank routing/account from BANK_INFORMATION.
+    Transaction type is randomly selected.
+    Checkboxes (Written, Resubmit R01) are randomly set.
+    """
+    return {
+        "description": f"Originator_{faker.word().capitalize()}_{random.randint(100, 999)}",
+        "transaction_type": random.choice(ACH_TRANSACTION_TYPES),
+        "written_authorization": random.choice([True, False]),
+        "resubmit_r01": random.choice([True, False]),
+        # Bank info - same as BANK_INFORMATION
+        "routing_number": BANK_INFORMATION["routing_number"],
+        "account_number": BANK_INFORMATION["account_number"],
+    }
+
+
+# Generate ACH Originator data at module load
+ACH_ORIGINATOR = generate_ach_originator_data()
+
+
+# =============================================================================
 # SALES REPRESENTATIVE
 # =============================================================================
 SALES_REPRESENTATIVE = {"name": "DEMONET1"}

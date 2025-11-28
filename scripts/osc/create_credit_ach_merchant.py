@@ -4,7 +4,7 @@ OSC Credit Card + ACH Merchant Creation - Complete Workflow
 This script automates the full merchant creation process with both Credit Card and ACH:
 1. Login to OSC
 2. Navigate to new application
-3. Select Credit Card product
+3. Select Credit Card and ACH product
 4. Fill Application Information
 5. Fill Corporate Information
 6. Fill Location Information
@@ -20,15 +20,13 @@ This script automates the full merchant creation process with both Credit Card a
 16. Fill Credit Card Underwriting
 17. Fill Credit Card Interchange
 18. Add Terminal (Wizard Step 1)
-19. Select ACH Product
-20. Fill ACH Information
-21. Save Application
-22. Submit Application (commented - enable in lower env)
+19. Save Application
+20. Validate Application
+21. Fill ACH Information
+22. Save Application
+23. Validate Application
+24. Submit Application
 
-BENEFITS:
-- Uses UIAutomationCore for automatic browser/logging management
-- Automatic cleanup and performance reporting
-- Colored terminal output
 """
 
 from core import UIAutomationCore, log_step, log_success, log_section
@@ -54,8 +52,11 @@ CREDIT_CARD_SERVICES = _data.CREDIT_CARD_SERVICES
 CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
 CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
 
-# TODO: Add ACH data imports when available
-# ACH_INFORMATION = _data.ACH_INFORMATION
+# ACH data imports
+ACH_SERVICES = _data.ACH_SERVICES
+ACH_UNDERWRITING = _data.ACH_UNDERWRITING
+ACH_FEES = _data.ACH_FEES
+ACH_ORIGINATOR = _data.ACH_ORIGINATOR
 
 import time
 
@@ -111,11 +112,12 @@ def create_credit_ach_merchant():
         log_success(f"New application page opened: {application_page.url}")
         core.take_screenshot("application_page")
 
-        # ==================== Step 3: Select Credit Card Product ====================
-        log_step("Step 3: Selecting Credit Card product")
+        # ==================== Step 3: Select Credit Card and ACH Products ====================
+        log_step("Step 3: Selecting Credit Card and ACH products")
 
         new_app_page = NewApplicationPage(application_page)
         
+        # Select Credit Card product first
         credit_card_selected = new_app_page.select_credit_card_product()
         
         if not credit_card_selected:
@@ -124,6 +126,17 @@ def create_credit_ach_merchant():
         
         log_success("Credit Card product selected and verified")
         core.take_screenshot("credit_card_product_selected")
+        
+        # Select ACH product
+        ach_selected = new_app_page.select_ach_product()
+        
+        if not ach_selected:
+            logger.error("Failed to select ACH product")
+            # Continue anyway - we want to test the flow
+        else:
+            log_success("ACH product selected and verified")
+        
+        core.take_screenshot("ach_product_selected")
 
         # ==================== Step 4: Fill Application Information ====================
         log_step("Step 4: Filling Application Information section")
@@ -430,66 +443,113 @@ def create_credit_ach_merchant():
 
         # ====================================================================================
         # ACH PRODUCT SECTION
-        # TODO: Implement ACH-specific steps below
         # ====================================================================================
+        # ACH product is selected in Step 3. Now we fill ACH-specific sections.
 
-        # ==================== Step 19: Select ACH Product ====================
-        # log_step("Step 19: Selecting ACH product")
-        # 
-        # ach_selected = new_app_page.select_ach_product()
-        # 
-        # if not ach_selected:
-        #     logger.error("Failed to select ACH product")
-        #     # Continue anyway - ACH is optional
-        # else:
-        #     log_success("ACH product selected and verified")
-        # 
-        # core.take_screenshot("ach_product_selected")
-
-        # ==================== Step 20: Fill ACH Information ====================
-        # log_step("Step 20: Filling ACH Information section")
-        # 
-        # ach_results = new_app_page.fill_ach_information_section()
-        # all_results["ach_info"] = ach_results
-        # 
-        # ach_success = sum(1 for r in ach_results.values() if r)
-        # ach_total = len(ach_results)
-        # 
-        # if ach_success == ach_total:
-        #     log_success(f"ACH Information: {ach_success}/{ach_total} fields")
-        # else:
-        #     failed = [f for f, r in ach_results.items() if not r]
-        #     logger.warning(f"ACH Information: {ach_success}/{ach_total}. Failed: {failed}")
-        # 
-        # core.take_screenshot("ach_info_completed")
-
-        # ==================== Step 21: Save Application ====================
-        log_step("Step 21: Saving Application")
+        # ==================== Step 19: Select ACH Services ====================
+        log_step("Step 19: Selecting ACH Services")
         
-        save_result = new_app_page.save_application()
-        all_results["save_application"] = save_result
+        logger.info(f"ACH Services to select: {ACH_SERVICES}")
         
-        app_info_id = save_result.get("app_info_id")
+        ach_services_results = new_app_page.select_ach_services()
+        all_results["ach_services"] = ach_services_results
         
-        if save_result.get("success"):
-            log_success(f"Application saved successfully. AppInfoID: {app_info_id}")
+        ach_services_success = sum(1 for r in ach_services_results.values() if r)
+        ach_services_total = len(ach_services_results)
+        
+        if ach_services_success == ach_services_total:
+            log_success(f"ACH Services: {ach_services_success}/{ach_services_total} services selected")
         else:
-            logger.warning(f"Save application: {save_result.get('message')}")
+            failed = [f for f, r in ach_services_results.items() if not r]
+            logger.warning(f"ACH Services: {ach_services_success}/{ach_services_total}. Failed: {failed}")
         
-        core.take_screenshot("application_saved")
+        core.take_screenshot("ach_services_completed")
 
-        # ==================== Step 22: Submit Application  ====================
-        # log_step("Step 22: Submitting Application")
-        # 
-        # submit_result = new_app_page.submit_application()
-        # all_results["submit_application"] = submit_result
-        # 
-        # if submit_result.get("success"):
-        #     log_success("Application submitted successfully")
-        # else:
-        #     logger.warning(f"Submit application: {submit_result.get('message')}")
-        # 
-        # core.take_screenshot("application_submitted")
+        # ==================== Step 20: Fill ACH Underwriting Profile ====================
+        log_step("Step 20: Filling ACH Underwriting Profile")
+        
+        logger.info(f"ACH Underwriting: Annual Volume={ACH_UNDERWRITING['annual_volume']}, "
+                   f"Avg Ticket={ACH_UNDERWRITING['avg_ticket']}, "
+                   f"Written={ACH_UNDERWRITING['written_pct']}%, "
+                   f"Merchant={ACH_UNDERWRITING['merchant_pct']}%")
+        
+        ach_underwriting_results = new_app_page.fill_ach_underwriting_profile()
+        all_results["ach_underwriting"] = ach_underwriting_results
+        
+        ach_underwriting_success = sum(1 for r in ach_underwriting_results.values() if r)
+        ach_underwriting_total = len(ach_underwriting_results)
+        
+        if ach_underwriting_success == ach_underwriting_total:
+            log_success(f"ACH Underwriting Profile: {ach_underwriting_success}/{ach_underwriting_total} fields")
+        else:
+            failed = [f for f, r in ach_underwriting_results.items() if not r]
+            logger.warning(f"ACH Underwriting Profile: {ach_underwriting_success}/{ach_underwriting_total}. Failed: {failed}")
+        
+        core.take_screenshot("ach_underwriting_completed")
+
+        # ==================== Step 21: Fill ACH Fees ====================
+        log_step("Step 21: Filling ACH Fees and Miscellaneous Fees")
+        
+        logger.info(f"ACH Fees: CCD Written Rate={ACH_FEES['ccd_written_rate']}, "
+                   f"PPD Written Rate={ACH_FEES['ppd_written_rate']}, "
+                   f"Statement Fee={ACH_FEES['statement_fee']}")
+        
+        ach_fees_results = new_app_page.fill_ach_fees()
+        all_results["ach_fees"] = ach_fees_results
+        
+        ach_fees_success = sum(1 for r in ach_fees_results.values() if r)
+        ach_fees_total = len(ach_fees_results)
+        
+        if ach_fees_success == ach_fees_total:
+            log_success(f"ACH Fees: {ach_fees_success}/{ach_fees_total} fields")
+        else:
+            failed = [f for f, r in ach_fees_results.items() if not r]
+            logger.warning(f"ACH Fees: {ach_fees_success}/{ach_fees_total}. Failed: {failed}")
+        
+        core.take_screenshot("ach_fees_completed")
+
+        # ==================== Step 22: Add ACH Originator ====================
+        log_step("Step 22: Adding ACH Originator")
+        
+        logger.info(f"ACH Originator: Description={ACH_ORIGINATOR['description']}, "
+                   f"Transaction Type={ACH_ORIGINATOR['transaction_type']}, "
+                   f"Written={ACH_ORIGINATOR['written_authorization']}, "
+                   f"Resubmit R01={ACH_ORIGINATOR['resubmit_r01']}")
+        
+        ach_originator_result = new_app_page.add_ach_originator()
+        all_results["ach_originator"] = ach_originator_result
+        
+        ach_originator_success = 1 if ach_originator_result.get("success") else 0
+        ach_originator_total = 1
+        ach_originator_verified = ach_originator_result.get("verified", False)
+        
+        if ach_originator_result.get("success"):
+            log_success(f"ACH Originator: Added '{ach_originator_result.get('description')}' - Verified: {ach_originator_verified}")
+        else:
+            logger.warning(f"ACH Originator: Failed to add - Verified: {ach_originator_verified}")
+        
+        core.take_screenshot("ach_originator_completed")
+
+        # ==================== Step 23: Validate Application ====================
+        log_step("Step 23: Validating Application")
+        
+        validation_result = new_app_page.validate_application()
+        all_results["validate_application"] = validation_result
+        
+        validation_success = validation_result.get("success", False)
+        validation_message = validation_result.get("message", "")
+        validation_errors = validation_result.get("errors", [])
+        app_info_id = validation_result.get("app_info_id")
+        
+        if validation_success:
+            log_success(f"Validation passed: {validation_message}")
+        else:
+            logger.error(f"Validation failed: {validation_message}")
+            if validation_errors:
+                for idx, error in enumerate(validation_errors, 1):
+                    logger.error(f"  {idx}. {error}")
+        
+        core.take_screenshot("application_validated")
 
         # ==================== Summary ====================
         log_section("WORKFLOW SUMMARY")
@@ -499,13 +559,15 @@ def create_credit_ach_merchant():
                         trade_success + underwriting_success + billing_success +
                         bank_success + cc_info_success + cc_services_success +
                         cc_underwriting_success + cc_interchange_success +
-                        terminal_success)
+                        terminal_success + ach_services_success + ach_underwriting_success +
+                        ach_fees_success + ach_originator_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
                        bank_total + cc_info_total + cc_services_total +
                        cc_underwriting_total + cc_interchange_total +
-                       terminal_total)
+                       terminal_total + ach_services_total + ach_underwriting_total +
+                       ach_fees_total + ach_originator_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -522,7 +584,10 @@ def create_credit_ach_merchant():
         logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
         logger.info(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}")
         logger.info(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total}")
-        # logger.info(f"ACH Information: {ach_success}/{ach_total}")  # TODO: Uncomment when ACH implemented
+        logger.info(f"ACH Services: {ach_services_success}/{ach_services_total}")
+        logger.info(f"ACH Underwriting Profile: {ach_underwriting_success}/{ach_underwriting_total}")
+        logger.info(f"ACH Fees: {ach_fees_success}/{ach_fees_total}")
+        logger.info(f"ACH Originator: {ach_originator_success}/{ach_originator_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -532,17 +597,31 @@ def create_credit_ach_merchant():
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
         # ==================== Final Summary ====================
-        log_section("APPLICATION SAVED")
+        log_section("APPLICATION VALIDATED")
         if app_info_id:
-            logger.info(f"✅ Application is saved and AppInfoID is {app_info_id}")
+            logger.info(f"✅ AppInfoID: {app_info_id}")
         else:
-            logger.warning("Application save status unknown - AppInfoID not extracted")
+            logger.warning("⚠️ AppInfoID not extracted")
+        
+        if validation_success:
+            logger.info(f"✅ Validation: {validation_message}")
+        else:
+            logger.error(f"❌ Validation Failed: {validation_message}")
+            if validation_errors:
+                logger.error(f"   Errors ({len(validation_errors)}):")
+                for error in validation_errors:
+                    logger.error(f"   • {error}")
 
         core.take_screenshot("final_state")
         
         return {
             "results": all_results,
             "app_info_id": app_info_id,
+            "validation": {
+                "success": validation_success,
+                "message": validation_message,
+                "errors": validation_errors
+            },
             "summary": {
                 "total_success": total_success,
                 "total_fields": total_fields,
@@ -558,7 +637,19 @@ if __name__ == "__main__":
     
     if results:
         app_id = results.get('app_info_id', 'Unknown')
+        validation = results.get('validation', {})
+        
         print(f"\n✅ Credit Card + ACH Merchant creation completed: {results['summary']['success_rate']} success rate")
-        print(f"📋 Application is saved and AppInfoID is {app_id}")
+        print(f"📋 AppInfoID: {app_id}")
+        
+        if validation.get('success'):
+            print(f"✅ Validation: {validation.get('message', 'Passed')}")
+        else:
+            print(f"❌ Validation Failed: {validation.get('message', 'Unknown')}")
+            errors = validation.get('errors', [])
+            if errors:
+                print(f"   Errors ({len(errors)}):")
+                for error in errors:
+                    print(f"   • {error}")
     else:
         print("\n❌ Merchant creation failed")
