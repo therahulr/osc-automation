@@ -1463,7 +1463,7 @@ class GeneralFeesLocators:
     chk = fee_checkbox("MC Infrastructure Fee")
     amt = fee_amount_input("MC Infrastructure Fee")
     """
-
+    GENERAL_FEES_HEADER = "ctl00_ContentPlaceHolder1_ctrlApplicationFees1_lblTitle"
     def FEE_CHECKBOX(description: str) -> str:
         return (
             f"//span[normalize-space(text())='{description}']"
@@ -1718,4 +1718,3 @@ class ACHOriginatorLocators:
         "[td[1][normalize-space(text())='{name}']]"
         "//a[contains(@id,'btnGridView1Delete')]"
     )
-

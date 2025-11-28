@@ -50,6 +50,9 @@ CREDIT_CARD_SERVICES = _data.CREDIT_CARD_SERVICES
 CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
 CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
 
+# Fee list imports (Credit only for this script - no ACH fees)
+CREDIT_FEE_LIST = _data.CREDIT_FEE_LIST
+
 import time
 
 def create_credit_card_merchant():
@@ -421,8 +424,33 @@ def create_credit_card_merchant():
         
         core.take_screenshot("terminal_wizard_step1_completed")
 
-        # ==================== Step 19: Save Application ====================
-        log_step("Step 19: Saving Application")
+        # ==================== Step 19: Select General Fees ====================
+        log_step("Step 19: Selecting General Fees (Credit Only)")
+        
+        # For Credit only merchant, we select only Credit fees (ACH fees not available)
+        logger.info(f"Credit Fees to select: {list(CREDIT_FEE_LIST.keys())}")
+        
+        # Select Credit Card related fees
+        credit_fees_result = new_app_page.select_general_fees(CREDIT_FEE_LIST)
+        all_results["credit_fees"] = credit_fees_result
+        
+        fees_selected = len(credit_fees_result.get("selected", []))
+        fees_already = len(credit_fees_result.get("already_selected", []))
+        fees_total = len(CREDIT_FEE_LIST)
+        fees_success = fees_selected + fees_already
+        
+        logger.info(f"Credit Fees: Selected={fees_selected}, Already={fees_already}, "
+                   f"Not Available={len(credit_fees_result.get('not_available', []))}")
+        
+        if fees_success > 0:
+            log_success(f"General Fees: {fees_success}/{fees_total} fees processed")
+        else:
+            logger.warning(f"General Fees: No fees were selected")
+        
+        core.take_screenshot("general_fees_completed")
+
+        # ==================== Step 20: Save Application ====================
+        log_step("Step 20: Saving Application")
         
         save_result = new_app_page.save_application()
         all_results["save_application"] = save_result
@@ -436,8 +464,8 @@ def create_credit_card_merchant():
         
         core.take_screenshot("application_saved")
 
-        # ==================== Step 20: Validate Application ====================
-        log_step("Step 20: Validating Application")
+        # ==================== Step 21: Validate Application ====================
+        log_step("Step 21: Validating Application")
         
         validation_result = new_app_page.validate_application()
         all_results["validate_application"] = validation_result
@@ -456,8 +484,8 @@ def create_credit_card_merchant():
         
         core.take_screenshot("application_validated")
 
-        # ==================== Step 21: Submit Application (COMMENTED - Enable in lower env) ====================
-        # log_step("Step 21: Submitting Application")
+        # ==================== Step 22: Submit Application (COMMENTED - Enable in lower env) ====================
+        # log_step("Step 22: Submitting Application")
         # 
         # submit_result = new_app_page.submit_application()
         # all_results["submit_application"] = submit_result
@@ -477,13 +505,13 @@ def create_credit_card_merchant():
                         trade_success + underwriting_success + billing_success +
                         bank_success + cc_info_success + cc_services_success +
                         cc_underwriting_success + cc_interchange_success +
-                        terminal_success)
+                        terminal_success + fees_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
                        bank_total + cc_info_total + cc_services_total +
                        cc_underwriting_total + cc_interchange_total +
-                       terminal_total)
+                       terminal_total + fees_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -500,6 +528,7 @@ def create_credit_card_merchant():
         logger.info(f"Credit Card Underwriting: {cc_underwriting_success}/{cc_underwriting_total}")
         logger.info(f"Credit Card Interchange: {cc_interchange_success}/{cc_interchange_total}")
         logger.info(f"Terminal Wizard Step 1: {terminal_success}/{terminal_total}")
+        logger.info(f"General Fees (Credit): {fees_success}/{fees_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 

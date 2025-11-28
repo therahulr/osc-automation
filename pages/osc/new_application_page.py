@@ -35,6 +35,7 @@ from locators.osc_locators import (
     BankInformationLocators,
     CreditCardInformationLocators,
     CreditCardUnderwritingLocators,
+    GeneralFeesLocators,
     CommonLocators,
 )
 # Dynamic data loading based on OSC_DATA_ENV environment variable
@@ -3615,4 +3616,169 @@ class NewApplicationPage(BasePage):
         
         return result
 
+    # =========================================================================
+    # GENERAL FEES SECTION
+    # =========================================================================
+    
+    @performance_step("scroll_to_general_fees")
+    @log_step
+    def scroll_to_general_fees(self) -> bool:
+        """
+        Scroll to General Fees section and verify it's visible.
+        
+        Returns:
+            bool: True if section is visible, False otherwise
+        """
+        try:
+            # Use ID selector for header
+            header_selector = f"#{GeneralFeesLocators.GENERAL_FEES_HEADER}"
+            self.scroll_to_element(header_selector)
+            time.sleep(0.3)
+            
+            if self.is_visible(header_selector):
+                self.logger.info("General Fees section is visible")
+                return True
+            else:
+                self.logger.warning("General Fees section not found")
+                return False
+        except Exception as e:
+            self.logger.error(f"Failed to scroll to General Fees section: {e}")
+            return False
+
+    @performance_step("select_general_fees")
+    @log_step
+    def select_general_fees(self, fee_list: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Select fees from the General Fees section and fill amounts.
+        
+        This method:
+        1. Scrolls to the General Fees section
+        2. For each fee in the list:
+           - Checks if fee exists in the table
+           - Checks if checkbox is enabled (not disabled)
+           - Checks if fee is already selected
+           - If not selected and enabled, selects it
+           - If amount field is enabled, fills the amount
+        
+        Args:
+            fee_list: Dict with fee_name as key and dict with 'amount' as value
+                     Example: {"MC Infrastructure Fee": {"amount": "25.50"}}
+        
+        Returns:
+            Dict with:
+                - success: bool - overall success
+                - selected: list - fees successfully selected
+                - already_selected: list - fees already checked
+                - not_available: list - fees not found in table
+                - disabled: list - fees with disabled checkbox
+                - amounts_filled: list - fees with amounts filled
+                - errors: list - any error messages
+        """
+        result = {
+            "success": True,
+            "selected": [],
+            "already_selected": [],
+            "not_available": [],
+            "disabled": [],
+            "amounts_filled": [],
+            "errors": []
+        }
+        
+        if not fee_list:
+            self.logger.info("No fees to select")
+            return result
+        
+        # Scroll to General Fees section
+        self.scroll_to_general_fees()
+        time.sleep(0.5)
+        
+        for fee_name, fee_data in fee_list.items():
+            amount = fee_data.get("amount", "")
+            
+            try:
+                # Get checkbox locator
+                checkbox_xpath = GeneralFeesLocators.FEE_CHECKBOX(fee_name)
+                checkbox = self.page.locator(checkbox_xpath)
+                
+                # Check if fee exists in the table using Playwright's count()
+                if checkbox.count() == 0:
+                    self.logger.warning(f"Fee '{fee_name}' not available in the list - skipping")
+                    result["not_available"].append(fee_name)
+                    continue
+                
+                # Scroll checkbox into view for better interaction
+                checkbox.scroll_into_view_if_needed()
+                time.sleep(0.1)
+                
+                # Check if checkbox is disabled
+                # Note: In DOM, disabled checkbox is inside <span disabled="disabled">
+                is_disabled = checkbox.is_disabled()
+                if is_disabled:
+                    self.logger.info(f"Fee '{fee_name}' checkbox is disabled - skipping")
+                    result["disabled"].append(fee_name)
+                    continue
+                
+                # Check if already selected
+                is_checked = checkbox.is_checked()
+                if is_checked:
+                    self.logger.info(f"Fee '{fee_name}' is already selected")
+                    result["already_selected"].append(fee_name)
+                else:
+                    # Select the fee
+                    checkbox.click()
+                    time.sleep(0.2)
+                    
+                    # Verify it's now checked
+                    if checkbox.is_checked():
+                        self.logger.info(f"Fee '{fee_name}' selected successfully")
+                        result["selected"].append(fee_name)
+                    else:
+                        self.logger.warning(f"Fee '{fee_name}' click did not select it")
+                        result["errors"].append(f"Failed to select: {fee_name}")
+                        continue
+                
+                # Now try to fill the amount if provided
+                if amount:
+                    amount_xpath = GeneralFeesLocators.FEE_AMOUNT_INPUT(fee_name)
+                    amount_input = self.page.locator(amount_xpath)
+                    
+                    # Check if amount field exists
+                    if amount_input.count() > 0:
+                        # Check if amount field is enabled
+                        if not amount_input.is_disabled():
+                            # Clear and fill the amount
+                            amount_input.clear()
+                            amount_input.fill(amount)
+                            time.sleep(0.1)
+                            
+                            self.logger.info(f"Fee '{fee_name}' amount set to {amount}")
+                            result["amounts_filled"].append(f"{fee_name}: {amount}")
+                        else:
+                            self.logger.info(f"Fee '{fee_name}' amount field is disabled (preset value)")
+                    else:
+                        self.logger.debug(f"Fee '{fee_name}' has no amount field")
+                        
+            except Exception as e:
+                error_msg = f"Error processing fee '{fee_name}': {str(e)}"
+                self.logger.error(error_msg)
+                result["errors"].append(error_msg)
+        
+        # Determine overall success (at least some fees processed without errors)
+        total_processed = len(result["selected"]) + len(result["already_selected"])
+        if total_processed > 0 or len(result["not_available"]) == len(fee_list):
+            result["success"] = True
+        else:
+            result["success"] = len(result["errors"]) == 0
+        
+        # Log summary
+        self.logger.info(f"Fee selection summary: "
+                        f"Selected={len(result['selected'])}, "
+                        f"Already selected={len(result['already_selected'])}, "
+                        f"Not available={len(result['not_available'])}, "
+                        f"Disabled={len(result['disabled'])}, "
+                        f"Amounts filled={len(result['amounts_filled'])}")
+        
+        return result
+
+    
     

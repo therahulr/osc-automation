@@ -150,6 +150,34 @@ def generate_annual_volume() -> str:
     return f"{volume:.2f}"
 
 
+def generate_fee_amount() -> str:
+    """Generate a random fee amount (1.00 to 99.99)"""
+    amount = round(random.uniform(1.00, 99.99), 2)
+    return f"{amount:.2f}"
+
+
+def generate_qa_business_names() -> tuple:
+    """
+    Generate QA-specific business names with QA prefix pattern.
+    Returns tuple: (legal_business_name, dba)
+    """
+    company_base = faker.company()
+    legal_name = f"QA Test {company_base}"
+    dba = f"QA {company_base} " + random.choice(["Store", "Shop", "Center", "Outlet"])
+    return legal_name, dba
+
+
+def generate_prod_business_names() -> tuple:
+    """
+    Generate PROD-specific business names with PROD prefix pattern.
+    Returns tuple: (legal_business_name, dba)
+    """
+    company_base = faker.company()
+    legal_name = f"Automation {company_base} LLC"
+    dba = f"Auto {company_base} " + random.choice(["Services", "Solutions", "Group", "Corp"])
+    return legal_name, dba
+
+
 # =============================================================================
 # APPLICATION INFO
 # =============================================================================
@@ -168,8 +196,9 @@ APPLICATION_INFO = {
 # =============================================================================
 # CORPORATE INFORMATION
 # =============================================================================
+# Note: legal_business_name is set by environment-specific data (QA/PROD)
 CORPORATE_INFO = {
-    "legal_business_name": faker.company(),
+    "legal_business_name": "",  # Set by QA/PROD specific data
     "address": faker.street_address(),
     "city": "Atlanta",
     "state": "Georgia",
@@ -189,8 +218,9 @@ CORPORATE_INFO = {
 # =============================================================================
 # LOCATION INFORMATION
 # =============================================================================
+# Note: dba is set by environment-specific data (QA/PROD)
 LOCATION_INFO = {
-    "dba": faker.company() + " " + random.choice(["Store", "Shop", "Center", "Outlet"]),
+    "dba": "",  # Set by QA/PROD specific data
     "address": faker.street_address(),
     "city": "Atlanta",
     "state": "Georgia",
@@ -656,3 +686,24 @@ CREDIT_CARD_UNDERWRITING = generate_credit_card_underwriting_data(
 # These are used by osc_data_qa.py and osc_data_prod.py
 MERCHANT_TYPE = _merchant_type  # "internet", "moto", or "retail"
 OWNERSHIP_TYPE = _ownership_type  # For reference in scripts
+
+
+# =============================================================================
+# FEE SELECTION HELPERS
+# =============================================================================
+def generate_fee_list(fee_names: list) -> Dict[str, Dict[str, Any]]:
+    """
+    Generate a fee list with random amounts for each fee.
+    
+    Args:
+        fee_names: List of fee description names
+        
+    Returns:
+        Dict with fee_name as key and dict with 'amount' as value
+    """
+    fee_list = {}
+    for fee_name in fee_names:
+        fee_list[fee_name] = {
+            "amount": generate_fee_amount()
+        }
+    return fee_list

@@ -202,19 +202,20 @@ class OSCBasePage:
             return False
 
     def fill_masked_date_input(self, selector: str, value: str, field_name: str = None,
-                               delay_ms: int = 150, max_retries: int = 2) -> bool:
+                               delay_ms: int = 150, max_retries: int = 3) -> bool:
         """
         Fill a masked date input field by typing digits slowly with retry logic.
         
-        Used specifically for date fields with mask pattern like __/__/____ (mm/dd/yyyy)
-        which can be sensitive to typing speed. Includes retry logic if digit count mismatch.
+        Used specifically for date fields with mask pattern like dd/mm/yyyy
+        which can be sensitive to typing speed. Includes retry logic with improved
+        navigation using left arrow keys to reset cursor position on failure.
         
         Args:
             selector: CSS or XPath selector for the input
             value: Date value containing digits (e.g., '01152020' or '01/15/2020')
             field_name: Friendly name for logging
             delay_ms: Delay between keystrokes in milliseconds (default: 150ms for reliability)
-            max_retries: Maximum retry attempts if digit count mismatch (default: 2)
+            max_retries: Maximum retry attempts if digit count mismatch (default: 3)
             
         Returns:
             bool: True if successful, False otherwise
@@ -240,13 +241,50 @@ class OSCBasePage:
                 self.page.click(selector)
                 time.sleep(0.15)
                 
-                # Clear existing content
-                self.page.locator(selector).clear()
-                time.sleep(0.15)
-                
-                # Click again to ensure focus at start of field
-                self.page.click(selector)
-                time.sleep(0.1)
+                if attempt == 0:
+                    # First attempt: Clear existing content normally
+                    self.page.locator(selector).clear()
+                    time.sleep(0.15)
+                    
+                    # Click again to ensure focus at start of field
+                    self.page.click(selector)
+                    time.sleep(0.1)
+                else:
+                    # Retry attempts: Use left arrow navigation to reset cursor to dd position
+                    # The masked field has format dd/mm/yyyy - cursor might be stuck in yyyy
+                    self.logger.debug(f"{field_name}: Retry attempt {attempt} - navigating to start with arrow keys")
+                    
+                    # Press Home key first to try to go to beginning
+                    self.page.keyboard.press("Home")
+                    time.sleep(0.1)
+                    
+                    # Press left arrow multiple times (3-4 times to cover dd/mm/yyyy navigation)
+                    # This ensures cursor is at the beginning (dd section)
+                    for _ in range(4):
+                        self.page.keyboard.press("ArrowLeft")
+                        time.sleep(0.05)
+                    
+                    time.sleep(0.1)
+                    
+                    # Select all and delete to clear existing malformed content
+                    self.page.keyboard.press("Control+a")  # or Command+a on Mac
+                    time.sleep(0.05)
+                    self.page.keyboard.press("Meta+a")  # Mac specific
+                    time.sleep(0.05)
+                    self.page.keyboard.press("Backspace")
+                    time.sleep(0.15)
+                    
+                    # Click again to refocus at start
+                    self.page.click(selector)
+                    time.sleep(0.1)
+                    
+                    # Navigate to start again after clearing
+                    self.page.keyboard.press("Home")
+                    time.sleep(0.05)
+                    for _ in range(4):
+                        self.page.keyboard.press("ArrowLeft")
+                        time.sleep(0.05)
+                    time.sleep(0.1)
                 
                 # Type each digit slowly with increased delay
                 for digit in digits:
@@ -254,7 +292,7 @@ class OSCBasePage:
                     time.sleep(delay_ms / 1000)
                 
                 # Small delay before verification
-                time.sleep(0.1)
+                time.sleep(0.15)
                 
                 # Verify by getting the value back
                 actual = self.get_text_value(selector)
@@ -266,15 +304,11 @@ class OSCBasePage:
                     self.logger.info(f"{field_name}: Filled with '{actual}' (digits: {digits})")
                     return True
                 elif len(actual_digits) != len(digits):
-                    # Wrong digit count - clear and retry
+                    # Wrong digit count - need to retry with navigation
                     self.logger.warning(f"{field_name}: Digit count mismatch ({len(actual_digits)} vs {len(digits)}). "
-                                       f"Got '{actual_digits}', expected '{digits}'. Retrying... ({attempt + 1}/{max_retries + 1})")
+                                       f"Got '{actual}' -> '{actual_digits}', expected '{digits}'. "
+                                       f"Retrying with arrow navigation... ({attempt + 1}/{max_retries + 1})")
                     if attempt < max_retries:
-                        # Triple-click to select all, then delete
-                        self.page.click(selector, click_count=3)
-                        time.sleep(0.1)
-                        self.page.keyboard.press("Backspace")
-                        time.sleep(0.2)
                         continue
                 else:
                     # Same digit count - browser may have reformatted date (MMDDYYYY to YYYYMMDD)

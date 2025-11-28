@@ -58,6 +58,10 @@ ACH_UNDERWRITING = _data.ACH_UNDERWRITING
 ACH_FEES = _data.ACH_FEES
 ACH_ORIGINATOR = _data.ACH_ORIGINATOR
 
+# Fee list imports
+CREDIT_FEE_LIST = _data.CREDIT_FEE_LIST
+ACH_FEE_LIST = _data.ACH_FEE_LIST
+
 import time
 
 def create_credit_ach_merchant():
@@ -530,8 +534,48 @@ def create_credit_ach_merchant():
         
         core.take_screenshot("ach_originator_completed")
 
-        # ==================== Step 23: Validate Application ====================
-        log_step("Step 23: Validating Application")
+        # ==================== Step 23: Select General Fees ====================
+        log_step("Step 23: Selecting General Fees (Credit + ACH)")
+        
+        # For Credit + ACH merchant, we select both Credit and ACH fees
+        logger.info(f"Credit Fees to select: {list(CREDIT_FEE_LIST.keys())}")
+        logger.info(f"ACH Fees to select: {list(ACH_FEE_LIST.keys())}")
+        
+        # Select Credit Card related fees
+        credit_fees_result = new_app_page.select_general_fees(CREDIT_FEE_LIST)
+        all_results["credit_fees"] = credit_fees_result
+        
+        credit_fees_selected = len(credit_fees_result.get("selected", []))
+        credit_fees_already = len(credit_fees_result.get("already_selected", []))
+        credit_fees_total = len(CREDIT_FEE_LIST)
+        
+        logger.info(f"Credit Fees: Selected={credit_fees_selected}, Already={credit_fees_already}, "
+                   f"Not Available={len(credit_fees_result.get('not_available', []))}")
+        
+        # Select ACH related fees
+        ach_fees_sel_result = new_app_page.select_general_fees(ACH_FEE_LIST)
+        all_results["ach_fees_selection"] = ach_fees_sel_result
+        
+        ach_fees_selected = len(ach_fees_sel_result.get("selected", []))
+        ach_fees_already = len(ach_fees_sel_result.get("already_selected", []))
+        ach_fees_sel_total = len(ACH_FEE_LIST)
+        
+        logger.info(f"ACH Fees: Selected={ach_fees_selected}, Already={ach_fees_already}, "
+                   f"Not Available={len(ach_fees_sel_result.get('not_available', []))}")
+        
+        # Combined fee tracking
+        fees_success = credit_fees_selected + credit_fees_already + ach_fees_selected + ach_fees_already
+        fees_total = credit_fees_total + ach_fees_sel_total
+        
+        if fees_success > 0:
+            log_success(f"General Fees: {fees_success}/{fees_total} fees processed")
+        else:
+            logger.warning(f"General Fees: No fees were selected")
+        
+        core.take_screenshot("general_fees_completed")
+
+        # ==================== Step 24: Validate Application ====================
+        log_step("Step 24: Validating Application")
         
         validation_result = new_app_page.validate_application()
         all_results["validate_application"] = validation_result
@@ -551,6 +595,44 @@ def create_credit_ach_merchant():
         
         core.take_screenshot("application_validated")
 
+        # ==================== Step 25: Save Application ====================
+        log_step("Step 25: Saving Application")
+        
+        save_result = new_app_page.save_application()
+        all_results["save_application"] = save_result
+        
+        save_success = save_result.get("success", False)
+        save_message = save_result.get("message", "")
+        saved_app_info_id = save_result.get("app_info_id")
+        
+        # Update app_info_id if we got it from save
+        if saved_app_info_id:
+            app_info_id = saved_app_info_id
+        
+        if save_success:
+            log_success(f"Application saved: {save_message}")
+        else:
+            logger.warning(f"Save may have issues: {save_message}")
+        
+        core.take_screenshot("application_saved")
+
+        # ==================== Step 26: Submit Application (COMMENTED) ====================
+        # NOTE: Uncomment the following block when ready to submit applications to production
+        # log_step("Step 26: Submitting Application")
+        # 
+        # submit_result = new_app_page.submit_application()
+        # all_results["submit_application"] = submit_result
+        # 
+        # submit_success = submit_result.get("success", False)
+        # submit_message = submit_result.get("message", "")
+        # 
+        # if submit_success:
+        #     log_success(f"Application submitted: {submit_message}")
+        # else:
+        #     logger.error(f"Submit failed: {submit_message}")
+        # 
+        # core.take_screenshot("application_submitted")
+
         # ==================== Summary ====================
         log_section("WORKFLOW SUMMARY")
         
@@ -560,14 +642,14 @@ def create_credit_ach_merchant():
                         bank_success + cc_info_success + cc_services_success +
                         cc_underwriting_success + cc_interchange_success +
                         terminal_success + ach_services_success + ach_underwriting_success +
-                        ach_fees_success + ach_originator_success)
+                        ach_fees_success + ach_originator_success + fees_success)
         total_fields = (app_total + corp_total + loc_total + 
                        tax_total + owner1_total + owner2_total +
                        trade_total + underwriting_total + billing_total +
                        bank_total + cc_info_total + cc_services_total +
                        cc_underwriting_total + cc_interchange_total +
                        terminal_total + ach_services_total + ach_underwriting_total +
-                       ach_fees_total + ach_originator_total)
+                       ach_fees_total + ach_originator_total + fees_total)
         
         logger.info(f"Application Information: {app_success}/{app_total}")
         logger.info(f"Corporate Information: {corp_success}/{corp_total}")
@@ -588,6 +670,7 @@ def create_credit_ach_merchant():
         logger.info(f"ACH Underwriting Profile: {ach_underwriting_success}/{ach_underwriting_total}")
         logger.info(f"ACH Fees: {ach_fees_success}/{ach_fees_total}")
         logger.info(f"ACH Originator: {ach_originator_success}/{ach_originator_total}")
+        logger.info(f"General Fees (Credit+ACH): {fees_success}/{fees_total}")
         logger.info(f"─" * 40)
         logger.info(f"TOTAL: {total_success}/{total_fields} ({(total_success/total_fields)*100:.1f}%)")
 
@@ -597,7 +680,7 @@ def create_credit_ach_merchant():
             logger.warning(f"Completed with {total_fields - total_success} field(s) failed")
 
         # ==================== Final Summary ====================
-        log_section("APPLICATION VALIDATED")
+        log_section("APPLICATION STATUS")
         if app_info_id:
             logger.info(f"✅ AppInfoID: {app_info_id}")
         else:
@@ -611,6 +694,11 @@ def create_credit_ach_merchant():
                 logger.error(f"   Errors ({len(validation_errors)}):")
                 for error in validation_errors:
                     logger.error(f"   • {error}")
+        
+        if save_success:
+            logger.info(f"✅ Saved: {save_message}")
+        else:
+            logger.warning(f"⚠️ Save: {save_message}")
 
         core.take_screenshot("final_state")
         
@@ -621,6 +709,10 @@ def create_credit_ach_merchant():
                 "success": validation_success,
                 "message": validation_message,
                 "errors": validation_errors
+            },
+            "save": {
+                "success": save_success,
+                "message": save_message
             },
             "summary": {
                 "total_success": total_success,
@@ -638,6 +730,7 @@ if __name__ == "__main__":
     if results:
         app_id = results.get('app_info_id', 'Unknown')
         validation = results.get('validation', {})
+        save = results.get('save', {})
         
         print(f"\n✅ Credit Card + ACH Merchant creation completed: {results['summary']['success_rate']} success rate")
         print(f"📋 AppInfoID: {app_id}")
@@ -651,5 +744,10 @@ if __name__ == "__main__":
                 print(f"   Errors ({len(errors)}):")
                 for error in errors:
                     print(f"   • {error}")
+        
+        if save.get('success'):
+            print(f"✅ Saved: {save.get('message', 'Success')}")
+        else:
+            print(f"⚠️ Save: {save.get('message', 'Unknown')}")
     else:
         print("\n❌ Merchant creation failed")
