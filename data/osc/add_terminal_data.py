@@ -171,6 +171,47 @@ SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
 }
 
 
+PAYA_CONNECT_INTEGRATED: Dict[str, Any] = {
+    "name": "Paya Connect Integrated",
+    "part_type": "Gateway",
+    "provider": "Sage Payment Solutions",
+    "part_condition": "New",
+    "part_id": "Paya Connect Integrated",
+    "serial_number": "",
+    "merchant_sale_price": "random",
+    "file_built_by": "",
+    "reprogram_fee": "random",
+    "reprogram_fee_amount": "",
+    "welcome_kit_fee": "random",
+    "welcome_kit_fee_amount": "",
+    "terminal_program": "VAR / STAGE",
+    "front_end_processor": "",
+    "bill_to": "Location",
+    "ship_to": "Location",
+    "ship_method": "Ground",
+}
+
+PAYA_GATEWAY_LEVEL_3_VT3: Dict[str, Any] = {
+    "name": "Paya Gateway Level 3 / VT3",
+    "part_type": "Gateway",
+    "provider": "Sage Payment Solutions",
+    "part_condition": "New",
+    "part_id": "Paya Gateway Level 3 / VT3",
+    "serial_number": "",
+    "merchant_sale_price": "random",
+    "file_built_by": "",
+    "reprogram_fee": "random",
+    "reprogram_fee_amount": "",
+    "welcome_kit_fee": "random",
+    "welcome_kit_fee_amount": "",
+    "terminal_program": "VAR / STAGE",
+    "front_end_processor": "",
+    "bill_to": "Location",
+    "ship_to": "Location",
+    "ship_method": "Ground",
+}   
+
+
 # =====================================================
 # TERMINAL QUANTITIES
 # Define how many of each terminal type to add

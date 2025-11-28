@@ -161,9 +161,10 @@ def generate_qa_business_names() -> tuple:
     Generate QA-specific business names with QA prefix pattern.
     Returns tuple: (legal_business_name, dba)
     """
-    company_base = faker.company()
-    legal_name = f"Rahul Test {company_base}"
-    dba = f"{company_base} " + random.choice(["Store", "Shop", "Center", "Outlet"])
+    legal_name_base = faker.company()
+    dba_base = faker.company()
+    legal_name = f"Rahul Test {legal_name_base}"
+    dba = f"Rahul Test {dba_base} " + random.choice(["Store", "Shop", "Center", "Outlet"])
     return legal_name, dba
 
 
