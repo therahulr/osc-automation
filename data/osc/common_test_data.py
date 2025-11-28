@@ -98,10 +98,20 @@ def generate_fax_digits() -> str:
 
 
 def generate_random_date_past(years_back: int = 10) -> str:
-    """Generate a random past date (mmddyyyy format)"""
-    days_back = random.randint(365, years_back * 365)
-    past_date = datetime.now() - timedelta(days=days_back)
-    return past_date.strftime("%m%d%Y")
+    """
+    Generate a random past date (mmddyyyy format).
+    
+    Ensures mm and dd start with non-zero digit (10-12 for month, 10-28 for day)
+    to avoid issues with masked date input fields that can mishandle leading zeros.
+    """
+    # Generate month 10-12 (October, November, December) to avoid leading zeros
+    month = random.randint(10, 12)
+    # Generate day 10-28 to avoid leading zeros and stay safe for all months
+    day = random.randint(10, 28)
+    # Generate year (years_back years ago to 1 year ago)
+    current_year = datetime.now().year
+    year = random.randint(current_year - years_back, current_year - 1)
+    return f"{month:02d}{day:02d}{year}"
 
 
 def generate_dunns_number() -> str:
@@ -125,16 +135,37 @@ def generate_ssn_digits() -> str:
 
 
 def generate_dob_digits(min_age: int = 25, max_age: int = 65) -> str:
-    """Generate date of birth (ddmmyyyy format)"""
-    dob = faker.date_of_birth(minimum_age=min_age, maximum_age=max_age)
-    return dob.strftime("%d%m%Y")
+    """
+    Generate date of birth (mmddyyyy format for US date entry).
+    
+    Ensures mm and dd start with non-zero digit (10-12 for month, 10-28 for day)
+    to avoid issues with masked date input fields that can mishandle leading zeros.
+    """
+    # Generate month 10-12 to avoid leading zeros
+    month = random.randint(10, 12)
+    # Generate day 10-28 to avoid leading zeros
+    day = random.randint(10, 28)
+    # Generate year based on age range
+    current_year = datetime.now().year
+    year = random.randint(current_year - max_age, current_year - min_age)
+    return f"{month:02d}{day:02d}{year}"
 
 
 def generate_date_of_ownership_digits(years_back: int = 10) -> str:
-    """Generate date of ownership (ddmmyyyy format)"""
-    days_back = random.randint(365, years_back * 365)
-    ownership_date = datetime.now() - timedelta(days=days_back)
-    return ownership_date.strftime("%d%m%Y")
+    """
+    Generate date of ownership (mmddyyyy format for US date entry).
+    
+    Ensures mm and dd start with non-zero digit (10-12 for month, 10-28 for day)
+    to avoid issues with masked date input fields that can mishandle leading zeros.
+    """
+    # Generate month 10-12 to avoid leading zeros
+    month = random.randint(10, 12)
+    # Generate day 10-28 to avoid leading zeros
+    day = random.randint(10, 28)
+    # Generate year (years_back years ago to 1 year ago)
+    current_year = datetime.now().year
+    year = random.randint(current_year - years_back, current_year - 1)
+    return f"{month:02d}{day:02d}{year}"
 
 
 def generate_rate_value() -> str:
@@ -163,8 +194,8 @@ def generate_qa_business_names() -> tuple:
     """
     legal_name_base = faker.company()
     dba_base = faker.company()
-    legal_name = f"Rahul Test {legal_name_base}"
-    dba = f"Rahul Test {dba_base} " + random.choice(["Store", "Shop", "Center", "Outlet"])
+    legal_name = f"QA Test {comlegal_namese}"
+    dba = f"QA Rahul Test {dba_base} " + random.choice(["Store", "Shop", "Center", "Outlet"])
     return legal_name, dba
 
 
