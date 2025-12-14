@@ -170,7 +170,7 @@ def generate_date_of_ownership_digits(years_back: int = 10) -> str:
 
 def generate_rate_value() -> str:
     """Generate a random rate value (X.XXX format)"""
-    whole = random.randint(0, 9)
+    whole = random.randint(0, 9)        
     decimal = random.randint(0, 999)
     return f"{whole}.{decimal:03d}"
 

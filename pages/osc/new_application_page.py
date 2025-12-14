@@ -2577,13 +2577,13 @@ class NewApplicationPage(BasePage):
                 )
             
             # AMEX Annual Volume
-            amex_annual_volume = data.get("amex_annual_volume", "")
-            if amex_annual_volume:
-                results["amex_annual_volume"] = self._fill_input_fast(
-                    loc.AMEX_ANNUAL_VOLUME_INPUT,
-                    amex_annual_volume,
-                    "AMEX Annual Volume"
-                )
+            # amex_annual_volume = data.get("amex_annual_volume", "")
+            # if amex_annual_volume:
+            #     results["amex_annual_volume"] = self._fill_input_fast(
+            #         loc.AMEX_ANNUAL_VOLUME_INPUT,
+            #         amex_annual_volume,
+            #         "AMEX Annual Volume"
+            #     )
         
         # ===== AMEX Opt-out Marketing (applies regardless of acceptance) =====
         amex_optout = data.get("amex_optout_marketing", False)
