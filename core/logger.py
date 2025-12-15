@@ -130,7 +130,8 @@ class AutomationLogger:
         )
         
         env = get_env("ENV", "prod").lower()
-        log_level = logging.DEBUG if env == "dev" else logging.INFO
+        # Use DEBUG for dev/qa, INFO for prod
+        log_level = logging.DEBUG if env in ("dev", "qa") else logging.INFO
         file_handler.setLevel(log_level)
         
         file_formatter = logging.Formatter(
@@ -174,7 +175,8 @@ class AutomationLogger:
 
         # Determine log level from environment
         env = get_env("ENV", "prod").lower()
-        log_level = logging.DEBUG if env == "dev" else logging.INFO
+        # Use DEBUG for dev/qa, INFO for prod
+        log_level = logging.DEBUG if env in ("dev", "qa") else logging.INFO
 
         # Rich console handler for beautiful terminal output
         # Use force_terminal on Windows for better compatibility

@@ -12,14 +12,31 @@ import time
 from core.logger import get_logger
 from core.utils import SYMBOL_CHECK, SYMBOL_CROSS
 from locators.osc_locators import TerminalWizardLocators, CommonLocators, EquipmentTableLocators
-from data.osc.add_terminal_data import (
-    add_to_added_terminals,
-    get_added_terminals,
-    clear_added_terminals,
-    generate_serial_number,
-    generate_random_price,
-    generate_random_fee,
-)
+
+# Dynamic import of terminal data helper functions based on environment
+def _load_terminal_helpers():
+    """Load terminal data helper functions based on current environment."""
+    from config.osc.config import osc_settings
+    import importlib
+    
+    env = osc_settings.environment
+    module_name = f"data.osc.add_terminal_{env}"
+    
+    try:
+        return importlib.import_module(module_name)
+    except ImportError as e:
+        print(f"Warning: Terminal data module '{module_name}' not found. "
+              f"Falling back to 'data.osc.add_terminal_prod'. Error: {e}")
+        return importlib.import_module("data.osc.add_terminal_prod")
+
+_terminal_helpers = _load_terminal_helpers()
+add_to_added_terminals = _terminal_helpers.add_to_added_terminals
+get_added_terminals = _terminal_helpers.get_added_terminals
+clear_added_terminals = _terminal_helpers.clear_added_terminals
+generate_serial_number = _terminal_helpers.generate_serial_number
+generate_random_price = _terminal_helpers.generate_random_price
+generate_random_fee = _terminal_helpers.generate_random_fee
+
 
 
 class AddTerminalPage:

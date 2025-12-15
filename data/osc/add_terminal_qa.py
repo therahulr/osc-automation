@@ -1,11 +1,15 @@
 """
-Add Terminal Wizard Data - Terminal configurations for all 6 wizard steps.
+Add Terminal Wizard Data - QA Environment
+Terminal configurations for all 6 wizard steps.
+
+This file contains terminal data for QA environment.
+Used when ENV=qa in .env file.
 
 Each terminal is defined as a complete configuration variable containing
 all data needed from Step 1 through Step 6 (Finish).
 
 Usage:
-    from data.osc.add_terminal_data import SAGE_VIRTUAL_TERMINAL, TERMINALS_TO_ADD
+    from data.osc.add_terminal_data_qa import SAGE_VIRTUAL_TERMINAL, TERMINALS_TO_ADD
     
     # Add terminals defined in TERMINALS_TO_ADD list
     add_terminal_page.add_terminals(TERMINALS_TO_ADD)
@@ -25,15 +29,15 @@ from typing import Dict, List, Any, Optional
 
 def generate_serial_number() -> str:
     """
-    Generate a random serial number in format TEST followed by random chars/digits.
-    Example: TEST0B12XYGMK
+    Generate a random serial number in format QA followed by random chars/digits.
+    Example: QA0B12XYGMK
     
     Returns:
-        str: Random serial number like 'TEST0B12XYGMK'
+        str: Random serial number like 'QA0B12XYGMK'
     """
     # Generate 8-10 random uppercase letters and digits
     random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(8, 10)))
-    return f"TEST{random_part}"
+    return f"QA{random_part}"
 
 
 def generate_random_price(min_price: float = 50.0, max_price: float = 500.0) -> str:
@@ -109,7 +113,7 @@ def get_added_terminal_count() -> int:
 
 
 # =====================================================
-# TERMINAL CONFIGURATIONS
+# TERMINAL CONFIGURATIONS - QA
 # Each terminal contains ALL data for wizard steps 1-6
 # =====================================================
 
@@ -123,31 +127,25 @@ SAGE_50: Dict[str, Any] = {
     "part_condition": "New",
     
     # ===== Step 2: Select Terminal =====
-    # Part ID to select from the terminal grid (exact text from PartID column)
     "part_id": "Sage 50",
     
-    # ===== Step 3: Terminal Details (ALL OPTIONAL - decided randomly at runtime) =====
-    # Values here are used IF the random decision is to fill the field
-    # Use "random" to generate at runtime, or specific value to use that value
-    "serial_number": "random",  # "random" = generate TEST<random>, "" = skip, "specific" = use that value
-    "merchant_sale_price": "random",  # "random" = generate random price, "" = skip
-    "file_built_by": "random",  # "random" = select random option, "" = skip, "SPS" = select SPS
-    "reprogram_fee": "random",  # "random" = decide at runtime, True/False = use that
-    "reprogram_fee_amount": "random",  # "random" = generate if checkbox checked
-    "welcome_kit_fee": "random",  # "random" = decide at runtime, True/False = use that
-    "welcome_kit_fee_amount": "random",  # "random" = generate if checkbox checked
+    # ===== Step 3: Terminal Details =====
+    "serial_number": "random",
+    "merchant_sale_price": "random",
+    "file_built_by": "random",
+    "reprogram_fee": "random",
+    "reprogram_fee_amount": "random",
+    "welcome_kit_fee": "random",
+    "welcome_kit_fee_amount": "random",
     
     # ===== Step 4: Terminal Application =====
-    "terminal_program": "VAR / STAGE",  # Program name to select from table
-    "front_end_processor": "",  # Dropdown selection (usually pre-selected)
+    "terminal_program": "VAR / STAGE",
+    "front_end_processor": "",
     
     # ===== Step 5: Billing & Shipping =====
-    "bill_to": "Location",  # Dropdown: "Location", "Corporate", etc.
+    "bill_to": "Location",
     "ship_to": "Location",
     "ship_method": "Ground",
-    
-    # ===== Step 6: Review =====
-    # No data needed - just verification and finish
 }
 
 SAGE_VIRTUAL_TERMINAL: Dict[str, Any] = {
@@ -213,10 +211,8 @@ PAYA_GATEWAY_LEVEL_3_VT3: Dict[str, Any] = {
 
 
 # =====================================================
-# TERMINAL QUANTITIES
-# Define how many of each terminal type to add
-# Set quantity to 0 to skip that terminal type
-# Maps directly to terminal configuration variables
+# TERMINAL QUANTITIES - QA
+# Larger quantities for QA testing
 # =====================================================
 TERMINAL_QUANTITIES: List[tuple] = [
     (SAGE_50, 5),
@@ -235,13 +231,6 @@ def build_terminal_list() -> List[Dict[str, Any]]:
     
     Returns:
         List of terminal configurations to add
-        
-    Example:
-        TERMINAL_QUANTITIES = [
-            (SAGE_50_TERMINAL, 5),
-            (SAGE_VIRTUAL_TERMINAL, 10),
-        ]
-        # Returns list of 15 terminal configs (5 SAGE_50 + 10 SAGE_VIRTUAL)
     """
     terminals: List[Dict[str, Any]] = []
     
@@ -250,8 +239,6 @@ def build_terminal_list() -> List[Dict[str, Any]]:
             continue
         
         for i in range(quantity):
-            # Create a copy so each instance is independent
-            # Random values will be generated at runtime in complete_step_3()
             terminal_copy = terminal_config.copy()
             terminals.append(terminal_copy)
     
@@ -259,7 +246,7 @@ def build_terminal_list() -> List[Dict[str, Any]]:
 
 
 # =====================================================
-# TERMINALS TO ADD
+# TERMINALS TO ADD - QA
 # Built dynamically from TERMINAL_QUANTITIES
 # =====================================================
 TERMINALS_TO_ADD: List[Dict[str, Any]] = build_terminal_list()
@@ -279,8 +266,7 @@ def get_terminal_by_name(name: str) -> Optional[Dict[str, Any]]:
     Returns:
         Terminal configuration dict or None if not found
     """
-    # Search in common terminals
-    all_terminals = [SAGE_50_TERMINAL]
+    all_terminals = [SAGE_50, SAGE_VIRTUAL_TERMINAL, PAYA_CONNECT_INTEGRATED, PAYA_GATEWAY_LEVEL_3_VT3]
     
     for terminal in all_terminals:
         if terminal.get("name") == name:

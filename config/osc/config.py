@@ -41,14 +41,22 @@ class OSCSettings:
         self.mfa_path = get_env("OSC_MFA_PATH", "/SalesCenter/mfa")
         self.quote_path = get_env("OSC_QUOTE_PATH", "/SalesCenter/quote/create")
         self.timeout_ms = get_env_int("OSC_TIMEOUT_MS", default=30000)
-        self.environment = get_env("OSC_ENV", "prod").lower()
         
-        # Data environment: qa or prod (defaults to same as environment)
-        self.data_env = get_env("OSC_DATA_ENV", self.environment).lower()
+        # Get environment from single ENV variable (case-insensitive)
+        # Normalize to 'prod' or 'qa' only
+        env_raw = get_env("ENV", "prod").lower()
         
-        # Validate data_env (only qa or prod allowed)
-        if self.data_env not in ("qa", "prod"):
-            self.data_env = "prod"
+        # Map 'dev' to 'prod' for backward compatibility (dev uses prod credentials in read-only mode)
+        if env_raw == "dev":
+            self.environment = "prod"
+        elif env_raw in ("qa", "prod"):
+            self.environment = env_raw
+        else:
+            # Default to prod for any unrecognized value
+            self.environment = "prod"
+        
+        # Data environment matches the environment (both controlled by ENV)
+        self.data_env = self.environment
 
     @property
     def credentials(self) -> Tuple[str, str]:
@@ -105,8 +113,8 @@ def get_osc_data():
     Dynamically load the OSC data module based on configured data environment.
     
     This allows switching between different test data sets:
-    - OSC_DATA_ENV=prod  → data/osc/osc_data_prod.py
-    - OSC_DATA_ENV=qa    → data/osc/osc_data_qa.py
+    - ENV=prod  → data/osc/osc_data_prod.py
+    - ENV=qa    → data/osc/osc_data_qa.py
     
     Returns:
         module: The loaded data module with all test data exports

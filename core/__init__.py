@@ -57,6 +57,14 @@ from core.components import (
     ModalComponent,
 )
 
+# AI and ML
+from core.gemini_client import (
+    GeminiClient,
+    GeminiResponse,
+    create_gemini_client,
+)
+
+
 __all__ = [
     # Core framework
     "UIAutomationCore",
@@ -90,4 +98,9 @@ __all__ = [
     "FormComponent",
     "TableComponent",
     "ModalComponent",
+    # AI and ML
+    "GeminiClient",
+    "GeminiResponse",
+    "create_gemini_client",
 ]
+

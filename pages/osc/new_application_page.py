@@ -59,7 +59,28 @@ CREDIT_CARD_UNDERWRITING = _data.CREDIT_CARD_UNDERWRITING
 generate_credit_card_underwriting_data = _data.generate_credit_card_underwriting_data
 CREDIT_CARD_INTERCHANGE = _data.CREDIT_CARD_INTERCHANGE
 
-from data.osc.add_terminal_data import TERMINALS_TO_ADD
+
+# Dynamic terminal data loading based on environment
+def _load_terminal_data():
+    """Load terminal data based on current environment."""
+    from config.osc.config import osc_settings
+    import importlib
+    
+    env = osc_settings.environment
+    module_name = f"data.osc.add_terminal_{env}"
+    
+    try:
+        terminal_module = importlib.import_module(module_name)
+        return terminal_module
+    except ImportError as e:
+        # Fallback to prod data if env-specific doesn't exist
+        print(f"Warning: Terminal data module '{module_name}' not found. "
+              f"Falling back to 'data.osc.add_terminal_prod'. Error: {e}")
+        return importlib.import_module("data.osc.add_terminal_prod")
+
+_terminal_data = _load_terminal_data()
+TERMINALS_TO_ADD = _terminal_data.TERMINALS_TO_ADD
+
 from pages.osc.add_terminal_page import AddTerminalPage
 from utils.decorators import log_step, timeit
 from core.performance_decorators import performance_step
@@ -3591,15 +3612,39 @@ class NewApplicationPage(BasePage):
         """
         Submit the application.
         
+        NOTE: Submit is disabled in PROD environment for safety.
+        Only QA environment can submit applications.
+        
         Returns:
             Dict with:
                 - success: bool - whether submit was successful
                 - message: str - status message
+                - submitted: bool - whether application was actually submitted
         """
+        from config.osc.config import osc_settings
+        
         result = {
             "success": False,
-            "message": ""
+            "message": "",
+            "submitted": False
         }
+        
+        # Check if submit is allowed in current environment
+        if not osc_settings.is_production_safe:
+            warning_msg = (
+                "⚠️  SUBMIT DISABLED: Cannot submit application in PROD environment.\n"
+                f"   Current environment: {osc_settings.environment.upper()}\n"
+                "   Reason: Submit action is disabled via environment configuration.\n"
+                "   To enable submit: Set ENV=qa in your .env file"
+            )
+            self.logger.warning(warning_msg)
+            result["success"] = True  # Operation succeeded (validation passed)
+            result["message"] = "Submit skipped - PROD environment (read-only mode)"
+            result["submitted"] = False
+            return result
+        
+        # QA environment - proceed with submit
+        self.logger.info(f"✅ Submit enabled in {osc_settings.environment.upper()} environment")
         
         # Click Submit button
         submit_clicked = self.click_submit_button()
@@ -3612,6 +3657,7 @@ class NewApplicationPage(BasePage):
         
         result["success"] = True
         result["message"] = "Application submitted successfully"
+        result["submitted"] = True
         self.logger.info(result["message"])
         
         return result

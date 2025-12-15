@@ -95,18 +95,39 @@ AVAILABLE_SCRIPTS: Dict[str, ScriptInfo] = {
         description="Verify OSC dashboard elements and navigation",
         tags=["dashboard", "verification"]
     ),
+    "discover_valid_terminals": ScriptInfo(
+        name="Discover Valid Terminals",
+        module="scripts.osc.discover_valid_terminals",
+        function="discover_terminals",
+        description="Discover all valid terminal combinations (Part Type + Provider)",
+        tags=["terminal", "discovery", "equipment"]
+    ),
 }
 
 
-def print_banner():
-    """Print the application banner"""
+def print_banner(env_name: str = None):
+    """Print the application banner with environment info"""
     if not RICH_AVAILABLE:
         print("\n" + "="*60)
         print("  OSC AUTOMATION RUNNER")
+        if env_name:
+            print(f"  Environment: {env_name.upper()}")
         print("="*60 + "\n")
         return
     
-    banner = """
+    # Get environment if not provided
+    if env_name is None:
+        try:
+            from config.osc.config import osc_settings
+            env_name = osc_settings.environment
+        except:
+            env_name = "unknown"
+    
+    # Color based on environment
+    env_color = "bold green" if env_name.lower() == "qa" else "bold yellow"
+    env_display = env_name.upper()
+    
+    banner = f"""
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
 ║     ██████╗ ███████╗ ██████╗                                  ║
@@ -121,6 +142,17 @@ def print_banner():
 ╚═══════════════════════════════════════════════════════════════╝
     """
     console.print(banner, style="bold cyan")
+    
+    # Display environment in larger text
+    env_panel = Panel(
+        f"[{env_color}]{env_display}[/{env_color}]",
+        title="[bold white]Environment Selected[/bold white]",
+        border_style=env_color.split()[1],  # Extract color from "bold green"
+        padding=(0, 2),
+        style=f"{env_color}"
+    )
+    console.print(env_panel, justify="center")
+    console.print()
 
 
 def list_scripts():
@@ -348,9 +380,9 @@ def display_results(results: Dict[str, Any], script_key: str):
         ))
 
 
-def interactive_mode():
+def interactive_mode(env_name: str = None):
     """Run in interactive mode with menu"""
-    print_banner()
+    print_banner(env_name)
     
     while True:
         list_scripts()
@@ -387,7 +419,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python runner.py                          # Interactive mode
+  python runner.py                          # Interactive mode (defaults to QA)
+  python runner.py --prod                   # Run in PROD environment (read-only)
+  python runner.py --qa                     # Run in QA environment (full operations)
   python runner.py --list                   # List available scripts
   python runner.py create_credit_card_merchant   # Run specific script
 
@@ -395,6 +429,11 @@ Available Scripts:
   - create_credit_card_merchant    Create Credit Card merchant
   - create_credit_ach_merchant     Create Credit Card + ACH merchant
   - verify_dashboard               Verify OSC dashboard
+
+Environment Selection:
+  --prod                           Run in PROD environment (read-only mode, no submit)
+  --qa                             Run in QA environment (full operations)
+  (no flag)                        Use .env file setting (or default to QA)
         """
     )
     
@@ -416,11 +455,46 @@ Available Scripts:
         help="Skip confirmation prompts"
     )
     
+    parser.add_argument(
+        "--prod",
+        action="store_true",
+        help="Run in PROD environment (read-only mode, submit disabled)"
+    )
+    
+    parser.add_argument(
+        "--qa",
+        action="store_true",
+        help="Run in QA environment (full operations, submit enabled)"
+    )
+    
     args = parser.parse_args()
+    
+    # Handle environment override
+    env_override = None
+    if args.prod and args.qa:
+        if RICH_AVAILABLE:
+            console.print("[bold red]Error:[/bold red] Cannot specify both --prod and --qa")
+        else:
+            print("Error: Cannot specify both --prod and --qa")
+        return 1
+    elif args.prod:
+        env_override = "prod"
+        os.environ["ENV"] = "prod"
+    elif args.qa:
+        env_override = "qa"
+        os.environ["ENV"] = "qa"
+    else:
+        # No argument provided - use .env setting or default to qa
+        current_env = os.getenv("ENV", "qa").lower()
+        env_override = current_env
+        if current_env not in ("prod", "qa"):
+            # If .env has invalid value, default to qa
+            env_override = "qa"
+            os.environ["ENV"] = "qa"
     
     # List scripts mode
     if args.list:
-        print_banner()
+        print_banner(env_override)
         list_scripts()
         
         if RICH_AVAILABLE:
@@ -444,7 +518,7 @@ Available Scripts:
                     print(f"  • {key}")
             return 1
         
-        print_banner()
+        print_banner(env_override)
         
         if not args.yes and not confirm_execution(args.script):
             if RICH_AVAILABLE:
@@ -459,7 +533,7 @@ Available Scripts:
         return 0 if results.get("success") else 1
     
     # Interactive mode (default)
-    interactive_mode()
+    interactive_mode(env_override)
     return 0
 
 

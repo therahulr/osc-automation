@@ -1,6 +1,10 @@
 # Core automation framework
 playwright>=1.40.0
 
+# AI and ML
+google-genai>=1.0.0
+httpx>=0.25.0
+
 # Environment and configuration
 python-dotenv>=1.0.0
 
